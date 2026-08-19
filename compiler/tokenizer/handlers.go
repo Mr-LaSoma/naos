@@ -1,6 +1,9 @@
 package tokenizer
 
-import "naoslang/tokenizer/tokens"
+import (
+	"fmt"
+	"naoslang/tokenizer/tokens"
+)
 
 // handleComments handles comments tokens and it dispatches
 // the / to the operations if is not a comment
@@ -16,6 +19,21 @@ func (t *tokenizer) handleComments() tokens.Token {
 		return t.newToken(tokens.TOKMultiComment, false)
 	}
 
-	// operations
-	return t.newToken(tokens.TOKNotImplemented, true)
+	return t.handleOperators('/')
+}
+
+func (t *tokenizer) handleOperators(start rune) tokens.Token {
+	operator := []rune{start}
+	ch := t.peekRune()
+	for tokens.StringIsOperator(string(append(operator, ch))) {
+		operator = append(operator, ch)
+		tokens.PositionGoForward(&t.currentPos, false)
+		ch = t.peekRune()
+	}
+
+	kind, err := tokens.OperatorToKind(string(operator))
+	if err != nil {
+		panic(fmt.Sprintf("unexpected error while lexing an operator: %v", err))
+	}
+	return t.newToken(kind, false)
 }

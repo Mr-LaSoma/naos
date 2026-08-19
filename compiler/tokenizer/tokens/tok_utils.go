@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
-func (t TokenKind) IsValid() bool       { return tok_start < t && t < tok_count }
-func (t TokenKind) IsParentheses() bool { return tok_paren_beg < t && t < tok_paren_end }
-func (t TokenKind) IsSpecial() bool     { return tok_special_beg < t && t < tok_special_end }
-func (t TokenKind) IsComment() bool     { return t == TOKMonoComment || t == TOKMultiComment }
+func (t TokenKind) IsValid() bool           { return tok_start < t && t < tok_count }
+func (t TokenKind) IsParentheses() bool     { return tok_paren_beg < t && t < tok_paren_end }
+func (t TokenKind) IsSpecial() bool         { return tok_special_beg < t && t < tok_special_end }
+func (t TokenKind) IsComment() bool         { return t == TOKMonoComment || t == TOKMultiComment }
+func (t TokenKind) IsPunctuation() bool     { return tok_punct_beg < t && t < tok_punct_end }
+func (t TokenKind) IsOperator() bool        { return tok_op_beg < t && t < tok_op_end }
+func (t TokenKind) IsNormalOperator() bool  { return tok_nop_beg < t && t < tok_nop_beg }
+func (t TokenKind) IsBooleanOperator() bool { return tok_bop_beg < t && t < tok_bop_end }
+func (t TokenKind) IsBitwiseOperator() bool { return tok_bwop_beg < t && t < tok_bwop_beg }
+func (t TokenKind) IsSpecialOperator() bool { return tok_sop_beg < t && t < tok_sop_beg }
 
 func PrintTokens(toks []Token, showPos bool) {
 	headers := []string{"TOKEN", "LEXEME"}

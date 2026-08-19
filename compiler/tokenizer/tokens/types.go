@@ -34,6 +34,79 @@ const (
 	// end of the parentheses
 	tok_paren_end
 
+	// +---------------------------+
+	// | start of the punctuations |
+	// +---------------------------+
+	tok_punct_beg
+	TOKSemiColon // ;
+	TOKComma     // ,
+	TOKPeriod    // .
+
+	// end of the puncts
+	tok_punct_end
+
+	// +------------------------+
+	// | start of the operators |
+	// +------------------------+
+	tok_op_beg
+	tok_nop_beg      // start of the normal ones
+	TOKPlus          // +
+	TOKMinus         // -
+	TOKStar          // *
+	TOKSlash         // /
+	TOKPercent       // %
+	TOKAssign        // =
+	TOKPlusAssign    // +=
+	TOKMinusAssign   // -=
+	TOKStarAssign    // *=
+	TOKSlashAssign   // /=
+	TOKPercentAssign // %=
+	TOKIncrement     // ++
+	TOKDecrement     // --
+
+	tok_nop_end // end of the normal ones
+
+	tok_bop_beg     // start of the boolean ones
+	TOKNot          // !
+	TOKAnd          // &&
+	TOKOr           // ||
+	TOKLess         // <
+	TOKGreater      // >
+	TOKEqual        // ==
+	TOKNotEqual     // !=
+	TOKLessEqual    // <=
+	TOKGreaterEqual // >=
+
+	tok_bop_end // end of the boolean ones
+
+	tok_bwop_beg      // start of the bitwise ones
+	TOKBwAnd          // &
+	TOKBwOr           // |
+	TOKBwXor          // ^
+	TOKBwNot          // ~
+	TOKBwLShift       // <<
+	TOKBwRShift       // >>
+	TOKBwAndAssign    // &=
+	TOKBwOrAssign     // |=
+	TOKBwXorAssign    // ^=
+	TOKBwLShiftAssign // <<=
+	TOKBwRShiftAssign // >>=
+
+	tok_bwop_end // end of the bitwise ones
+
+	tok_sop_beg    // start of the special ones
+	TOKHashtag     // #
+	TOKAt          // @
+	TOKArrow       // ->
+	TOKBigArrow    // =>
+	TOKColon       // :
+	TOKDoubleColon // ::
+
+	tok_sop_end // end of the special ones
+
+	// end of the operators
+	tok_op_end
+
 	tok_count
 )
 
@@ -50,6 +123,53 @@ var tokens = [...]string{
 	TOKRBrackets: "]",
 	TOKLBraces:   "{",
 	TOKRBraces:   "}",
+
+	TOKColon:     ":",
+	TOKSemiColon: ";",
+	TOKComma:     ",",
+	TOKPeriod:    ".",
+
+	TOKPlus:          "+",
+	TOKMinus:         "-",
+	TOKStar:          "*",
+	TOKSlash:         "/",
+	TOKPercent:       "%",
+	TOKAssign:        "=",
+	TOKPlusAssign:    "+=",
+	TOKMinusAssign:   "-=",
+	TOKStarAssign:    "*=",
+	TOKSlashAssign:   "/=",
+	TOKPercentAssign: "%=",
+	TOKIncrement:     "++",
+	TOKDecrement:     "--",
+
+	TOKNot:          "!",
+	TOKAnd:          "&&",
+	TOKOr:           "||",
+	TOKLess:         "<",
+	TOKGreater:      ">",
+	TOKEqual:        "==",
+	TOKNotEqual:     "!=",
+	TOKLessEqual:    "<=",
+	TOKGreaterEqual: ">=",
+
+	TOKBwAnd:          "&",
+	TOKBwOr:           "|",
+	TOKBwXor:          "^",
+	TOKBwNot:          "~",
+	TOKBwLShift:       "<<",
+	TOKBwRShift:       ">>",
+	TOKBwAndAssign:    "&=",
+	TOKBwOrAssign:     "|=",
+	TOKBwXorAssign:    "^=",
+	TOKBwLShiftAssign: "<<=",
+	TOKBwRShiftAssign: ">>=",
+
+	TOKHashtag:     "#",
+	TOKAt:          "@",
+	TOKArrow:       "->",
+	TOKBigArrow:    "=>",
+	TOKDoubleColon: "::",
 }
 
 func (t TokenKind) String() string {
