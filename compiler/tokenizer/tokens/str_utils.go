@@ -249,3 +249,16 @@ func RuneToEscapeKind(ch rune) (escapeKind, error) {
 	}
 	return 0, fmt.Errorf("%c is not a valid escape sequence base", ch)
 }
+
+// +------------------+
+// | Compiler Actions |
+// +------------------+
+
+var compilerAction = map[string]struct{}{
+	"import": {},
+}
+
+func StringIsCompilerAction(str string) bool {
+	_, ok := compilerAction[str]
+	return ok
+}

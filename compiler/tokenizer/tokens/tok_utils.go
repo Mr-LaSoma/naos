@@ -17,6 +17,8 @@ func (t TokenKind) IsBitwiseOperator() bool { return tok_bwop_beg < t && t < tok
 func (t TokenKind) IsSpecialOperator() bool { return tok_sop_beg < t && t < tok_sop_beg }
 func (t TokenKind) IsLiteral() bool         { return tok_lit_beg < t && t < tok_lit_end }
 func (t TokenKind) IsKeyword() bool         { return tok_keyword_beg < t && t < tok_keyword_end }
+func (t TokenKind) IsUseless() bool         { return t == TOKMonoComment || t == TOKMultiComment }
+func (t TokenKind) IsError() bool           { return t == TOKInvalid || t == TOKNotImplemented }
 
 func PrintTokens(toks []Token, showPos bool) {
 	headers := []string{"TOKEN", "LEXEME"}
