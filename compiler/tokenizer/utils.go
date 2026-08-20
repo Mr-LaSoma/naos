@@ -8,17 +8,21 @@ import (
 // newToken returns a new token created with a specific type.
 // withLexeme signals if should be stored what is inside the token (true for literals, or identifiers)
 func (t *tokenizer) newToken(kind tokens.TokenKind, withLexeme bool) tokens.Token {
-	var s []rune
+	var s string
 
 	if withLexeme { // used so i won't get the string for stuff like if, while ecc...
-		s = t.source[t.startTokPos.Offset:t.currentPos.Offset]
+		s = t.getTokenValue()
 	}
 	return tokens.Token{
 		Kind:   kind,
-		Lexeme: string(s),
+		Lexeme: s,
 		Start:  t.startTokPos,
 		End:    t.currentPos,
 	}
+}
+
+func (t *tokenizer) getTokenValue() string {
+	return string(t.source[t.startTokPos.Offset:t.currentPos.Offset])
 }
 
 // readRune returns the current rune and goes forward with the position.

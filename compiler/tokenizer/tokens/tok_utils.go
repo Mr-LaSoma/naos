@@ -15,6 +15,8 @@ func (t TokenKind) IsNormalOperator() bool  { return tok_nop_beg < t && t < tok_
 func (t TokenKind) IsBooleanOperator() bool { return tok_bop_beg < t && t < tok_bop_end }
 func (t TokenKind) IsBitwiseOperator() bool { return tok_bwop_beg < t && t < tok_bwop_beg }
 func (t TokenKind) IsSpecialOperator() bool { return tok_sop_beg < t && t < tok_sop_beg }
+func (t TokenKind) IsLiteral() bool         { return tok_lit_beg < t && t < tok_lit_end }
+func (t TokenKind) IsKeyword() bool         { return tok_keyword_beg < t && t < tok_keyword_end }
 
 func PrintTokens(toks []Token, showPos bool) {
 	headers := []string{"TOKEN", "LEXEME"}

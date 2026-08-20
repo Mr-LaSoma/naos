@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	path := "./testFile.ns"
+	path := "./testFile2.ns"
 	name := filepath.Base(path)
 	data, err := os.ReadFile(path)
 	if err != nil {

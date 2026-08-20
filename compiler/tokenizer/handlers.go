@@ -3,6 +3,7 @@ package tokenizer
 import (
 	"fmt"
 	"naoslang/tokenizer/tokens"
+	"unicode"
 )
 
 // handleComments handles comments tokens and it dispatches
@@ -23,17 +24,33 @@ func (t *tokenizer) handleComments() tokens.Token {
 }
 
 func (t *tokenizer) handleOperators(start rune) tokens.Token {
-	operator := []rune{start}
 	ch := t.peekRune()
-	for tokens.StringIsOperator(string(append(operator, ch))) {
-		operator = append(operator, ch)
+	for tokens.StringIsOperator(t.getTokenValue() + string(ch)) {
 		tokens.PositionGoForward(&t.currentPos, false)
 		ch = t.peekRune()
 	}
 
-	kind, err := tokens.OperatorToKind(string(operator))
+	kind, err := tokens.OperatorToKind(t.getTokenValue())
 	if err != nil {
 		panic(fmt.Sprintf("unexpected error while lexing an operator: %v", err))
 	}
 	return t.newToken(kind, false)
+}
+
+func (t *tokenizer) handleIdentifiers() tokens.Token {
+	ch := t.peekRune()
+	for unicode.IsLetter(ch) || unicode.IsDigit(ch) || ch == '_' {
+		tokens.PositionGoForward(&t.currentPos, false)
+		ch = t.peekRune()
+	}
+
+	if tokens.StringIsKeyword(t.getTokenValue()) {
+		kind, err := tokens.KeywordToKind(t.getTokenValue())
+		if err != nil {
+			panic(fmt.Sprintf("unexpected error while lexing a keyword: %v", err))
+		}
+		return t.newToken(kind, false)
+	}
+
+	return t.newToken(tokens.TOKId, true)
 }

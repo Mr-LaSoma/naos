@@ -107,6 +107,43 @@ const (
 	// end of the operators
 	tok_op_end
 
+	// +-------------------+
+	// | start of literals |
+	// +-------------------+
+	tok_lit_beg
+	TOKId
+
+	// end of literals
+	tok_lit_end
+
+	// +-------------------+
+	// | start of keywords |
+	// +-------------------+
+	tok_keyword_beg
+	TOKPackage // package
+	TOKUsing   // using
+	TOKPub     // pub
+	TOKPriv    // priv
+
+	TOKIf    // if
+	TOKElse  // else
+	TOKWhile // while
+	TOKFor   // for
+	TOKMatch // match
+	TOKDefer // defer
+
+	TOKReturn   // return
+	TOKContinue // continue
+	TOKBreak    // break
+
+	TOKConst  // const
+	TOKStruct // struct
+	TOKEnum   // enum
+	TOKType   // type
+
+	// end of keywords
+	tok_keyword_end
+
 	tok_count
 )
 
@@ -170,6 +207,29 @@ var tokens = [...]string{
 	TOKArrow:       "->",
 	TOKBigArrow:    "=>",
 	TOKDoubleColon: "::",
+
+	TOKId: "identifier",
+
+	TOKPackage: "package",
+	TOKUsing:   "using",
+	TOKPub:     "pub",
+	TOKPriv:    "priv",
+
+	TOKIf:    "if",
+	TOKElse:  "else",
+	TOKWhile: "while",
+	TOKFor:   "for",
+	TOKMatch: "match",
+	TOKDefer: "defer",
+
+	TOKReturn:   "return",
+	TOKContinue: "continue",
+	TOKBreak:    "break",
+
+	TOKConst:  "const",
+	TOKStruct: "struct",
+	TOKEnum:   "enum",
+	TOKType:   "type",
 }
 
 func (t TokenKind) String() string {

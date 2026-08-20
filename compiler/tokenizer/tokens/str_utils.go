@@ -86,3 +86,33 @@ func OperatorToKind(str string) (TokenKind, error) {
 	}
 	return kind, nil
 }
+
+// +----------+
+// | Keywords |
+// +----------+
+
+var keywords = map[string]TokenKind{
+	"package": TOKPackage, "using": TOKUsing,
+	"pub": TOKPub, "priv": TOKPriv,
+
+	"if": TOKIf, "else": TOKElse, "while": TOKWhile,
+	"for": TOKFor, "match": TOKMatch, "defer": TOKDefer,
+
+	"return": TOKReturn, "continue": TOKContinue, "break": TOKBreak,
+
+	"const": TOKConst, "struct": TOKStruct,
+	"enum": TOKEnum, "type": TOKType,
+}
+
+func StringIsKeyword(str string) bool {
+	_, ok := keywords[str]
+	return ok
+}
+
+func KeywordToKind(str string) (TokenKind, error) {
+	kind, ok := keywords[str]
+	if !ok {
+		return 0, fmt.Errorf("%s is not a valid keyword", str)
+	}
+	return kind, nil
+}
