@@ -99,7 +99,7 @@ var keywords = map[string]TokenKind{
 
 	"return": TOKReturn, "continue": TOKContinue, "break": TOKBreak,
 
-	"const": TOKConst, "struct": TOKStruct,
+	"let": TOKLet, "const": TOKConst, "struct": TOKStruct,
 	"enum": TOKEnum, "type": TOKType,
 }
 
@@ -248,17 +248,4 @@ func RuneToEscapeKind(ch rune) (escapeKind, error) {
 		return EscapeKindUnicode32, nil
 	}
 	return 0, fmt.Errorf("%c is not a valid escape sequence base", ch)
-}
-
-// +------------------+
-// | Compiler Actions |
-// +------------------+
-
-var compilerAction = map[string]struct{}{
-	"import": {},
-}
-
-func StringIsCompilerAction(str string) bool {
-	_, ok := compilerAction[str]
-	return ok
 }

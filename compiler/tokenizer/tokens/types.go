@@ -140,6 +140,7 @@ const (
 	TOKContinue // continue
 	TOKBreak    // break
 
+	TOKLet    // let
 	TOKConst  // const
 	TOKStruct // struct
 	TOKEnum   // enum
@@ -234,6 +235,7 @@ var tokens = [...]string{
 	TOKContinue: "continue",
 	TOKBreak:    "break",
 
+	TOKLet:    "let",
 	TOKConst:  "const",
 	TOKStruct: "struct",
 	TOKEnum:   "enum",

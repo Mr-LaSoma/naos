@@ -6,7 +6,7 @@ pub type String :: struct {
     // since not every thing is public this can't be constructed as String{} outside of the package
     priv data: [*]byte;
     priv length: usize;
-}
+};
 
 pub str(cstring: cstr) -> String {
     i: usize = 0;
