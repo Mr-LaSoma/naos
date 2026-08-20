@@ -1,0 +1,45 @@
+package strings;
+
+@import("std.abi.cstr");
+
+pub type String :: struct {
+    // since not every thing is public this can't be constructed as String{} outside of the package
+    priv data: [*]byte;
+    priv length: usize;
+}
+
+pub str(cstring: cstr) -> String {
+    i: usize = 0;
+    while (cstring[i] != '\0') {
+        i++;
+    }
+    return String{
+        data: @copyalloc(i, cstring) as[*]byte,
+            length: i
+    }
+}
+
+
+String # {
+    pub length() -> usize { return self.length; }
+    pub isEmpty() -> bool { return self.length == 0; }
+
+    @overload destroy() -> void {
+        if(self.data != @null()) {
+        @free(self.data);
+    }
+}
+
+@overload copy(source: *const String) -> void {
+    self.length = source.length;
+    self.data = @copyalloc(source.length, source.data) as [*]byte;
+}
+
+@overload move(source: * String) -> void {
+    self.length = source.length;
+    self.data = source.data;
+
+    source.data = @null();
+    source.length = 0;
+}
+}
