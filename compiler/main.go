@@ -15,6 +15,7 @@ func main() {
 		panic(err)
 	}
 
+	// the lexer is officially finished
 	lexer := tokenizer.New(string(data), name)
 	tokens.PrintTokens(lexer.Tokenize(), true)
 }
