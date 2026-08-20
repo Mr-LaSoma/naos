@@ -1,11 +1,20 @@
+//
 // wow
+// //
 
 /**/
+/*
+*/
 /*/**/*/
+/*/ */
+/* wow */
 
-()
-[]
-{}
+(
+)
+[
+]
+{
+}
 
 ;
 ,
@@ -51,3 +60,70 @@
 =>
 :
 ::
+
+myVariable
+_myvariable_
+my_variable
+
+12345
+123_34
+12345_
+
+0b1010
+0B1010
+0b1012
+0b10_10
+0b1010_
+
+0o1574
+0O1574
+0o1578
+0o15_74
+0o1574_
+
+0x17FA
+0X17FA
+0x17FG
+0x17_FA
+0x17FA_
+
+3.14
+3.1.4
+3_14.14
+3.1_4
+0xF.
+3.14_
+
+"Hello"
+"Hello \xFF"
+"Hello \xF"
+""
+"Hello
+"
+"Hello \""
+
+'c'
+'\xFF'
+'\xF'
+''
+'c
+'
+'\''
+
+package
+using
+pub
+priv
+if
+else
+while
+for
+match
+defer
+return
+continue
+break
+const
+struct
+enum
+type

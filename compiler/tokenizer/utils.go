@@ -21,6 +21,15 @@ func (t *tokenizer) newToken(kind tokens.TokenKind, withLexeme bool) tokens.Toke
 	}
 }
 
+func (t *tokenizer) newInvalidToken(errormsg string) tokens.Token {
+	return tokens.Token{
+		Kind:   tokens.TOKInvalid,
+		Lexeme: errormsg,
+		Start:  t.startTokPos,
+		End:    t.currentPos,
+	}
+}
+
 func (t *tokenizer) getTokenValue() string {
 	return string(t.source[t.startTokPos.Offset:t.currentPos.Offset])
 }
@@ -68,8 +77,8 @@ func (t *tokenizer) skipMonoComment() {
 
 func (t *tokenizer) skipMultiComment() {
 	nNested := 1
-	for t.currentPos.Offset < len(t.source) {
-		ch := t.source[t.currentPos.Offset]
+	ch := t.peekRune()
+	for ch != tokens.EOFRune {
 		tokens.PositionGoForward(&t.currentPos, ch == '\n')
 
 		if ch == '/' && t.peekRune() == '*' {
@@ -85,5 +94,6 @@ func (t *tokenizer) skipMultiComment() {
 		if nNested == 0 {
 			break
 		}
+		ch = t.peekRune()
 	}
 }

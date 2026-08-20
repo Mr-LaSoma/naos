@@ -6,7 +6,7 @@ using @import("std.types.size");
 pub type cstr :: [*]byte;
 
 cstr # {
-    pub fromBytes(source[*]byte, len: usize) -> cstr {
+    pub fromBytes(source: const [*]byte, len: const usize) -> cstr {
         ptr: [*]byte = @alloc(len + 1);
         @memcopy(ptr, source, len);
         ptr[len] = '\0' as byte;
@@ -14,12 +14,27 @@ cstr # {
         return ptr @bitcast(cstr);
     }
 
-    @overload @as(source: [*]byte) -> cstr @invalid
-    @overload @as(source: cstr) -> [*]byte {
-        return source @bitcast([*]byte);
+    pub strlen(self: const cstr) -> usize {
+        i: usize;
+        for (i = 0; self[i] != '\0'; i++) { }
+        return i;
     }
 
+    @overload @as(source: const [*]byte) -> cstr @invalid
+    @overload @as(self: const cstr) -> [*]byte { return self @bitcast([*]byte); }
+
     @overload @delete (self: * cstr) -> void {
-        @free(cstr)
+        @free(self @bitcast([*]byte));
+}
+
+@overload @copy(self: * cstr, source: const * cstr) -> void {
+    len:= source.strlen() + 1;
+    self = @alloc(len) @bitcast(* cstr);
+        @memcopy(self @bitcast([*]byte), source @bitcast([*]byte), len);
+    }
+
+@overload @move(self: * cstr, source: * cstr) -> void {
+    self = source;
+    source = @null;
 }
 }

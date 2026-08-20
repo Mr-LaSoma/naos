@@ -111,7 +111,11 @@ const (
 	// | start of literals |
 	// +-------------------+
 	tok_lit_beg
-	TOKId
+	TOKId     // myVariable
+	TOKInt    // 123, 0xFF, ecc...
+	TOKFloat  // 3.14
+	TOKString // "Hello World"
+	TOKChar   // 'c', '\n', ecc...
 
 	// end of literals
 	tok_lit_end
@@ -149,7 +153,7 @@ const (
 
 var tokens = [...]string{
 	TOKNotImplemented: "NOT IMPLEMENTED",
-	TOKInvalid:        "invalid",
+	TOKInvalid:        "INVALID",
 	TOKEof:            "EOF",
 	TOKMonoComment:    "//",
 	TOKMultiComment:   "/*",
@@ -208,7 +212,11 @@ var tokens = [...]string{
 	TOKBigArrow:    "=>",
 	TOKDoubleColon: "::",
 
-	TOKId: "identifier",
+	TOKId:     "identifier",
+	TOKInt:    "integer",
+	TOKFloat:  "float",
+	TOKString: "string",
+	TOKChar:   "character",
 
 	TOKPackage: "package",
 	TOKUsing:   "using",

@@ -28,11 +28,9 @@ func (t *tokenizer) NextToken() tokens.Token {
 
 	switch ch {
 	case '\'':
-		return t.newToken(tokens.TOKNotImplemented, true)
-		panic("chars are not yet implemented")
+		return t.handleChars()
 	case '"':
-		return t.newToken(tokens.TOKNotImplemented, true)
-		panic("strings are not yet implemented")
+		return t.handleStrings()
 	case '/':
 		return t.handleComments()
 	case tokens.EOFRune:
@@ -40,8 +38,7 @@ func (t *tokenizer) NextToken() tokens.Token {
 	}
 
 	if unicode.IsDigit(ch) {
-		return t.newToken(tokens.TOKNotImplemented, true)
-		panic("numbers are not yet implemented")
+		return t.handleNumbers()
 	}
 	if unicode.IsLetter(ch) || ch == '_' {
 		return t.handleIdentifiers()

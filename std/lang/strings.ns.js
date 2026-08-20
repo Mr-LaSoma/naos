@@ -13,8 +13,10 @@ pub str(cstring: cstr) -> String {
     while (cstring[i] != '\0') {
         i++;
     }
+    ptr = @alloc(i) @as[*]byte
+    @memcopy(ptr, cstring, i)
     return String{
-        data: @copyalloc(i, cstring) as[*]byte,
+        data: ptr,
             length: i
     }
 }
@@ -39,7 +41,7 @@ String # {
     self.length = source.length;
     self.data = source.data;
 
-    source.data = @null();
+    source.data = @null;
     source.length = 0;
 }
 }
