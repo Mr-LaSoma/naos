@@ -666,6 +666,24 @@ func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error
 	tok := p.peekToken()
 
 	switch tok.Kind {
+	case tokens.TOKLBrackets:
+		p.readToken()
+
+		indexExpr, err := p.handleExpressions(tokens.PrecedenceLowest)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = p.expect(tokens.TOKRBrackets, "expected ']' after array indexing expression")
+		if err != nil {
+			return nil, err
+		}
+
+		return &ast.IndexAccessNode{
+			Left:  leftNode,
+			Index: indexExpr,
+		}, nil
+
 	case tokens.TOKPeriod:
 		p.readToken()
 
@@ -726,33 +744,43 @@ func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error
 				return nil, err
 			}
 
-			isFirstArgument := true
-			for p.peekToken().Kind != tokens.TOKRParen && !p.isAtEnd() {
-				if !isFirstArgument {
-					_, err := p.expect(tokens.TOKComma, "expected ',' between arguments of function")
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				arg, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if actionTok.Lexeme == "as" || actionTok.Lexeme == "bitcast" {
+				targetType, err := p.handleTypeSignature()
 				if err != nil {
 					return nil, err
 				}
 
-				args = append(args, arg)
-				isFirstArgument = false
+				args = append(args, targetType)
+			} else {
+				isFirstArgument := true
+				for p.peekToken().Kind != tokens.TOKRParen && !p.isAtEnd() {
+					if !isFirstArgument {
+						_, err := p.expect(tokens.TOKComma, "expected ',' between arguments of function")
+						if err != nil {
+							return nil, err
+						}
+					}
+
+					arg, err := p.handleExpressions(tokens.PrecedenceLowest)
+					if err != nil {
+						return nil, err
+					}
+
+					args = append(args, arg)
+					isFirstArgument = false
+				}
 			}
 
 			_, err = p.expect(tokens.TOKRParen, "expected ')' after function arguments")
 			if err != nil {
 				return nil, err
 			}
+
 		}
 
 		return &ast.CompilerActionNode{
 			Name:      actionTok.Lexeme,
-			Left:      nil,
+			Left:      leftNode,
 			Arguments: args,
 		}, nil
 	}
@@ -772,7 +800,7 @@ func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error
 	}, nil
 }
 
-func (p *parser) handleAssignement(tok tokens.Token) (ast.ASTNode, error) {
+func (p *parser) handleAssignement(leftSide ast.ASTNode) (ast.ASTNode, error) {
 	opTok := p.peekToken()
 	if !opTok.Kind.IsAssign() {
 		return nil, fmt.Errorf("expected assignement operator after identifier, found %s", opTok.Kind.String())
@@ -790,7 +818,7 @@ func (p *parser) handleAssignement(tok tokens.Token) (ast.ASTNode, error) {
 	}
 
 	return &ast.AssignementNode{
-		Left:     tok.Lexeme,
+		Left:     leftSide,
 		Operator: opTok.Kind.String(),
 		Right:    rightExpr,
 	}, nil
@@ -1022,16 +1050,33 @@ func (p *parser) handleBlock() (ast.ASTNode, error) {
 			statem, err = p.handleVariableDecl(false, isConst)
 
 		case tokens.TOKId:
-			next := p.peekNToken(1)
+			leftSide, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				return nil, err
+			}
 
-			if next.Kind.IsAssign() {
+			ntok := p.peekToken()
+			if ntok.Kind.IsAssign() {
 				p.readToken()
-				statem, err = p.handleAssignement(tok)
-			} else {
-				statem, err = p.handleExpressions(tokens.PrecedenceLowest)
-				if err == nil {
-					_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression statement")
+
+				rightSide, err := p.handleExpressions(tokens.PrecedenceLowest)
+				if err != nil {
+					return nil, err
 				}
+
+				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression statement")
+				if err != nil {
+					return nil, err
+				}
+
+				statem = &ast.AssignementNode{
+					Left:     leftSide,
+					Operator: ntok.Lexeme,
+					Right:    rightSide,
+				}
+			} else {
+				statem = leftSide
+				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression statement")
 			}
 
 		case tokens.TOKAt:
@@ -1353,11 +1398,28 @@ func (p *parser) handleForStatement() (ast.ASTNode, error) {
 		if tok.Kind == tokens.TOKLet || tok.Kind == tokens.TOKConst {
 			p.readToken()
 			init, err = p.handleVariableDecl(false, tok.Kind == tokens.TOKConst)
-		} else if tok.Kind == tokens.TOKId || p.peekNToken(1).Kind.IsAssign() {
-			p.readToken()
-			init, err = p.handleAssignement(tok)
 		} else {
-			init, err = p.handleExpressions(tokens.PrecedenceLowest)
+			leftSide, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				return nil, err
+			}
+
+			if p.peekToken().Kind.IsAssign() {
+				opTok := p.readToken()
+
+				rightSide, err := p.handleExpressions(tokens.PrecedenceLowest)
+				if err != nil {
+					return nil, err
+				}
+
+				init = &ast.AssignementNode{
+					Left:     leftSide,
+					Operator: opTok.Lexeme,
+					Right:    rightSide,
+				}
+			} else {
+				init = leftSide
+			}
 		}
 		if err != nil {
 			return nil, err
@@ -1380,15 +1442,26 @@ func (p *parser) handleForStatement() (ast.ASTNode, error) {
 	}
 
 	if p.peekToken().Kind != tokens.TOKRParen {
-		tok := p.peekToken()
-		if p.peekNToken(1).Kind.IsAssign() {
-			p.readToken()
-			post, err = p.handleAssignement(tok)
-		} else {
-			post, err = p.handleExpressions(tokens.PrecedenceLowest)
-		}
+		leftSide, err := p.handleExpressions(tokens.PrecedenceLowest)
 		if err != nil {
 			return nil, err
+		}
+
+		if p.peekToken().Kind.IsAssign() {
+			opTok := p.readToken()
+
+			rightSide, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				return nil, err
+			}
+
+			init = &ast.AssignementNode{
+				Left:     leftSide,
+				Operator: opTok.Lexeme,
+				Right:    rightSide,
+			}
+		} else {
+			init = leftSide
 		}
 	}
 

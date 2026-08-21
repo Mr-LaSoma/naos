@@ -55,9 +55,6 @@ func (p *parser) cleanupTokens() error {
 		if tok.Kind.IsError() {
 			return fmt.Errorf("syntax: %s", tok.Lexeme)
 		}
-		if !tok.Kind.IsUseless() {
-			ntokens = append(ntokens, tok)
-		}
 
 		switch tok.Kind {
 		case tokens.TOKIncrement:
@@ -89,6 +86,10 @@ func (p *parser) cleanupTokens() error {
 				End:    tok.End,
 			})
 			continue
+		}
+
+		if !tok.Kind.IsUseless() {
+			ntokens = append(ntokens, tok)
 		}
 	}
 

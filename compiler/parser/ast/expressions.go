@@ -43,3 +43,10 @@ type BlockExpressionNode struct {
 }
 
 func (n *BlockExpressionNode) Node() {}
+
+type IndexAccessNode struct {
+	Left  ASTNode
+	Index ASTNode
+}
+
+func (n *IndexAccessNode) Node() {}

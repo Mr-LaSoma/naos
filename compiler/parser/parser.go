@@ -24,6 +24,8 @@ func (p *parser) Parse() (*ast.ASTFile, error) {
 		return nil, err
 	}
 
+	tokens.PrintTokens(p.tokens, false)
+
 	fileAst := &ast.ASTFile{
 		Imports: []ast.ASTNode{},
 		Decls:   []ast.ASTNode{},

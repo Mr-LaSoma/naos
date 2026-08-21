@@ -37,7 +37,7 @@ type FuncDeclNode struct {
 func (n *FuncDeclNode) Node() {}
 
 type AssignementNode struct {
-	Left     string
+	Left     ASTNode
 	Operator string
 	Right    ASTNode
 }

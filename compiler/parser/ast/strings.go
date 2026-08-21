@@ -475,3 +475,7 @@ func (n *MatchStatementNode) String() string {
 
 	return sb.String()
 }
+
+func (n *IndexAccessNode) String() string {
+	return fmt.Sprintf("%s[%s]", n.Left.String(), n.Index.String())
+}

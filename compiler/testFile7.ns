@@ -1,15 +1,40 @@
-package main;
+package abi;
 
-pub type List :: struct {
-    data: $T interface{},
-    data2: $T,
-    next: List($T),
-};
+using @import("std.types.byte");
+using @import("std.types.size");
 
-priv func() -> void {
-    match(wow) {
-        
-        case, case2 => {};
-        b3, b4 => { => 5; };
+pub type cstr :: [*]byte;
+
+cstr # {
+    pub fromBytes(source: [*]byte, len: usize) -> cstr {
+        let ptr: [*]byte = @alloc(len + 1);
+        @memcopy(ptr, source, len);
+        ptr[len] = '\0' @as(byte);
+
+        return ptr @bitcast(cstr);
+    }
+
+    pub strlen(self: cstr) -> usize {
+        let i: usize = 0;
+        for (i = 0; self[i] != '\0'; i++) { }
+        return i;
+    }
+
+    @overload @as(source: [*]byte) -> cstr @invalid
+    @overload @as(self: cstr) -> [*]byte { return self @bitcast([*]byte); }
+
+    @overload @delete (self: * cstr) -> void {
+        @free(self @bitcast([*]byte));
+    }
+
+    @overload @copy(self, source: * cstr) -> void {
+        let len := source.strlen() + 1;
+        self = @alloc(len) @bitcast(* cstr);
+            @memcopy(self @bitcast([*]byte), source @bitcast([*]byte), len);
+        }
+
+    @overload @move(self, source: * cstr) -> void {
+        self = source;
+        source = @null;
     }
 }
