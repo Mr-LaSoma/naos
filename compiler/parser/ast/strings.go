@@ -305,3 +305,32 @@ func (n *InterfaceLiteralNode) String() string {
 
 	return sb.String()
 }
+
+func (v *EnumVariant) String() string {
+	if len(v.Fields) == 0 {
+		return v.Name
+	}
+
+	fields := make([]string, len(v.Fields))
+	for i := range v.Fields {
+		fields[i] = v.Fields[i].String()
+	}
+	return fmt.Sprintf("%s(%s)", v.Name, strings.Join(fields, ", "))
+}
+
+func (n *EnumLiteralNode) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("enum {")
+	for i := range n.Variants {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(n.Variants[i].String()))
+		sb.WriteString(",")
+	}
+	if len(n.Variants) > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}

@@ -6,9 +6,18 @@ pub type bool :: u1;
 pub const true: bool = 1;
 pub const false: bool = 1;
 
-pub type test :: interface {}
+pub type test :: interface {
+    pub fn() -> void,
+    pub fn2() -> void,
+};
+
+pub type test2 :: enum {
+    COLORE(),
+    RETTANGOLO(base: i32, area: i32),
+};
 
 bool # {
+    pub fn(a: interface{ pub fn() -> void, }) -> void {}
     @overload @as(const source: u1) -> bool {
         @unreachable;
         @free(test);

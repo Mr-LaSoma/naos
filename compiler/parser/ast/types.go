@@ -72,3 +72,14 @@ type InterfaceLiteralNode struct {
 }
 
 func (n *InterfaceLiteralNode) Node() {}
+
+type EnumVariant struct {
+	Name   string
+	Fields []StructField
+}
+
+type EnumLiteralNode struct {
+	Variants []EnumVariant
+}
+
+func (n *EnumLiteralNode) Node() {}
