@@ -32,6 +32,14 @@ func (t TokenKind) IsAssign() bool {
 	return ok
 }
 
+func (t TokenKind) IsStartTypeSign() bool {
+	switch t {
+	case TOKId, TOKStar, TOKLBrackets, TOKInterface, TOKStruct:
+		return true
+	}
+	return false
+}
+
 // +------------+
 // | Precedence |
 // +------------+

@@ -97,6 +97,7 @@ const (
 	tok_sop_beg    // start of the special ones
 	TOKHashtag     // #
 	TOKAt          // @
+	TOKDollar      // $
 	TOKArrow       // ->
 	TOKBigArrow    // =>
 	TOKColon       // :
@@ -210,6 +211,7 @@ var tokens = [...]string{
 
 	TOKHashtag:     "#",
 	TOKAt:          "@",
+	TOKDollar:      "$",
 	TOKArrow:       "->",
 	TOKBigArrow:    "=>",
 	TOKDoubleColon: "::",

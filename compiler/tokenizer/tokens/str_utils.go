@@ -58,11 +58,11 @@ var operators = map[string]TokenKind{
 	"&=": TOKBwAndAssign, "|=": TOKBwOrAssign, "^=": TOKBwXorAssign,
 	"<<=": TOKBwLShiftAssign, ">>=": TOKBwRShiftAssign,
 
-	"#": TOKHashtag, "@": TOKAt, "->": TOKArrow,
+	"#": TOKHashtag, "@": TOKAt, "$": TOKDollar, "->": TOKArrow,
 	"=>": TOKBigArrow, ":": TOKColon, "::": TOKDoubleColon,
 }
 
-const operatorsStart = "+-*/%=!&|<>^~#@:"
+const operatorsStart = "+-*/%=!&|<>^~#@:$"
 
 func RuneIsOperatorStart(ch rune) bool {
 	for _, opStart := range operatorsStart {
@@ -257,6 +257,14 @@ func RuneToEscapeKind(ch rune) (escapeKind, error) {
 func StringIsActionWParen(str string) bool {
 	switch str {
 	case "null", "unreachable":
+		return false
+	}
+	return true
+}
+
+func StringIsAttrWParen(str string) bool {
+	switch str {
+	case "inline", "noinline":
 		return false
 	}
 	return true

@@ -1,0 +1,7 @@
+package main;
+
+pub type List :: struct {
+    data: $T interface{},
+    data2: $T,
+    next: List($T),
+};

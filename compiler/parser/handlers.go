@@ -263,9 +263,67 @@ func (p *parser) handleTypeSignature() (ast.ASTNode, error) {
 		}
 		return enumNode, nil
 
+	case tokens.TOKDollar:
+		p.readToken()
+
+		nameTok, err := p.expect(tokens.TOKId, "expected generic type name after '$'")
+		if err != nil {
+			return nil, err
+		}
+
+		var constraintNode ast.ASTNode = nil
+		ntok := p.peekToken()
+		if ntok.Kind.IsStartTypeSign() {
+			constraintNode, err = p.handleTypeSignature()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return &ast.GenericTypeNode{
+			Name:       nameTok.Lexeme,
+			Constraint: constraintNode,
+		}, nil
+
 	case tokens.TOKId:
 		p.readToken()
-		return &ast.TypeReferanceNode{Name: tok.Lexeme}, nil
+		var currentType ast.ASTNode = &ast.TypeReferanceNode{Name: tok.Lexeme}
+
+		if p.peekToken().Kind == tokens.TOKLParen {
+			p.readToken()
+
+			instNode := &ast.GenericInstantiationNode{
+				Left:         currentType,
+				TypeArgument: []ast.ASTNode{},
+			}
+
+			isFirstArg := true
+			for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRParen {
+				if !isFirstArg {
+					_, err := p.expect(tokens.TOKComma, "expected ',' between generic types arguments")
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				argType, err := p.handleTypeSignature()
+				if err != nil {
+					return nil, err
+				}
+
+				instNode.TypeArgument = append(instNode.TypeArgument, argType)
+				isFirstArg = false
+			}
+
+			_, err := p.expect(tokens.TOKRParen, "expected ')' after generic arguments")
+			if err != nil {
+				return nil, err
+			}
+
+			currentType = instNode
+		}
+
+		return currentType, nil
 	}
 
 	return nil, fmt.Errorf("expected valid type signature, found %v", tok)
@@ -728,6 +786,74 @@ func (p *parser) handleAssignement(tok tokens.Token) (ast.ASTNode, error) {
 // | Functions |
 // +-----------+
 
+func (p *parser) handleFunctionAttributes() ([]ast.FuncAttribute, error) {
+	attrs := []ast.FuncAttribute{}
+
+	for p.peekToken().Kind == tokens.TOKAt {
+		p.readToken()
+
+		nameTok, err := p.expect(tokens.TOKId, "expected attribute name after '@'")
+		if err != nil {
+			return nil, err
+		}
+
+		attr := ast.FuncAttribute{
+			Name: nameTok.Lexeme,
+			Args: map[string]string{},
+		}
+
+		if tokens.StringIsAttrWParen(nameTok.Lexeme) {
+			_, err := p.expect(tokens.TOKLParen, "expected '(' after attribute name")
+			if err != nil {
+				return nil, err
+			}
+
+			isFirstArg := true
+			for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRParen {
+				if !isFirstArg {
+					_, err = p.expect(tokens.TOKComma, "expected ',' between attribute arguments")
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				keyTok, err := p.expect(tokens.TOKId, "expected argument key")
+				if err != nil {
+					return nil, err
+				}
+
+				if _, ok := attr.Args[keyTok.Lexeme]; ok {
+					return nil, fmt.Errorf("expected unique argument key, duplicate found %v", keyTok.Lexeme)
+				}
+
+				_, err = p.expect(tokens.TOKAssign, "expected '=' after argument key")
+				if err != nil {
+					return nil, err
+				}
+
+				valTok, err := p.expect(tokens.TOKString, fmt.Sprintf("expected string value for key %v", keyTok.Lexeme))
+				if err != nil {
+					return nil, err
+				}
+
+				cleanVal := valTok.Lexeme[1 : len(valTok.Lexeme)-1]
+				attr.Args[keyTok.Lexeme] = cleanVal
+
+				isFirstArg = false
+			}
+
+			_, err = p.expect(tokens.TOKRParen, "expected ')' after attribute")
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		attrs = append(attrs, attr)
+	}
+
+	return attrs, nil
+}
+
 func (p *parser) handleFunctionDecl(isPublic bool) (ast.ASTNode, error) {
 	nameTok, err := p.expect(tokens.TOKId, "expected function name")
 	if err != nil {
@@ -807,20 +933,24 @@ func (p *parser) handleParameters() ([]ast.Parameter, error) {
 		if p.peekToken().Kind == tokens.TOKColon {
 			p.readToken()
 
-			sharedType, err := p.handleTypeSignature()
-			if err != nil {
-				return nil, err
-			}
+			if p.peekToken().Kind.IsStartTypeSign() {
+				sharedType, err := p.handleTypeSignature()
+				if err != nil {
+					return nil, err
+				}
 
-			for _, tp := range tempGroup {
-				params = append(params, ast.Parameter{
-					IsConst: tp.IsConst,
-					Name:    tp.Name,
-					Type:    sharedType,
-				})
-			}
+				for _, tp := range tempGroup {
+					params = append(params, ast.Parameter{
+						IsConst: tp.IsConst,
+						Name:    tp.Name,
+						Type:    sharedType,
+					})
+				}
 
-			tempGroup = []tempParam{}
+				tempGroup = []tempParam{}
+			} else {
+				return nil, fmt.Errorf("expected valid type signature found %v", p.peekToken())
+			}
 		}
 	}
 
@@ -936,6 +1066,30 @@ func (p *parser) HandleTypeExtension(targetType string) (ast.ASTNode, error) {
 			switch identTok.Lexeme {
 			case "overload":
 				methodNode, err = p.handleCompileOverload()
+			case "inline", "noinline", "extern":
+				attrs, errt := p.handleFunctionAttributes()
+				if errt != nil {
+					return nil, errt
+				}
+
+				ntok := p.peekToken()
+				isPublic := false
+				if ntok.Kind == tokens.TOKPub || ntok.Kind == tokens.TOKPriv {
+					p.readToken()
+					isPublic = ntok.Kind == tokens.TOKPub
+				}
+
+				astNode, errt := p.handleFunctionDecl(isPublic)
+				if errt != nil {
+					return nil, errt
+				}
+
+				methodNode, ok := astNode.(*ast.FuncDeclNode)
+				if !ok {
+					panic("handle function declaration doesn't returns a FuncDeclNode")
+				}
+				methodNode.Attributes = attrs
+
 			default:
 				panic("not yet implemented the '@' (exluded the 'overload') symbol in the type extension")
 			}

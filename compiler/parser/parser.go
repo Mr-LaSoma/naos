@@ -18,7 +18,7 @@ func New(tokens []tokens.Token) *parser {
 }
 
 func (p *parser) Parse() (*ast.ASTFile, error) {
-	err := p.cleanupTokens()
+	err := p.cleanupTokens() // this one is preatty sus
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +117,42 @@ func (p *parser) Parse() (*ast.ASTFile, error) {
 			fileAst.Decls = append(fileAst.Decls, typeNode)
 			continue
 
+		case tokens.TOKAt:
+			p.readToken()
+			identTok, errt := p.expect(tokens.TOKId, "expected compiler action name")
+			if errt != nil {
+				return nil, errt
+			}
+
+			switch identTok.Lexeme {
+			case "inline", "noinline", "extern":
+				attrs, errt := p.handleFunctionAttributes()
+				if errt != nil {
+					return nil, errt
+				}
+
+				ntok := p.peekToken()
+				isPublic := false
+				if ntok.Kind == tokens.TOKPub || ntok.Kind == tokens.TOKPriv {
+					p.readToken()
+					isPublic = ntok.Kind == tokens.TOKPub
+				}
+
+				astNode, errt := p.handleFunctionDecl(isPublic)
+				if errt != nil {
+					return nil, errt
+				}
+
+				methodNode, ok := astNode.(*ast.FuncDeclNode)
+				if !ok {
+					panic("handle function declaration doesn't returns a FuncDeclNode")
+				}
+				methodNode.Attributes = attrs
+				fileAst.Decls = append(fileAst.Decls, methodNode)
+
+			default:
+				panic("not yet implemented the '@' action in global decl")
+			}
 		}
 
 		p.readToken()
