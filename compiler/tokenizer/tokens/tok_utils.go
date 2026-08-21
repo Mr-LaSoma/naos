@@ -20,6 +20,51 @@ func (t TokenKind) IsKeyword() bool         { return tok_keyword_beg < t && t < 
 func (t TokenKind) IsUseless() bool         { return t == TOKMonoComment || t == TOKMultiComment }
 func (t TokenKind) IsError() bool           { return t == TOKInvalid || t == TOKNotImplemented }
 
+// +------------+
+// | Precedence |
+// +------------+
+
+type Prec int8
+
+const (
+	PrecedenceLowest     Prec = iota
+	PrecedenceOr              // ||
+	PrecedenceAnd             // &&
+	PrecedenceBwOr            // |
+	PrecedenceBwXor           // ^
+	PrecedenceBwAnd           // &
+	PrecedenceComparison      // == , != , < , > , <= , >=
+	PrecedenceBwShift         // << , >>
+	PrecedenceSum             // + , -
+	PrecedenceProduct         // * , / , %
+	PrecedenceUnary           // ! , - , ~
+	PrecedenceCall            // function() or istance.method()
+)
+
+var precedence = map[TokenKind]Prec{
+	TOKOr: PrecedenceOr, TOKAnd: PrecedenceAnd,
+	TOKBwOr: PrecedenceBwOr, TOKBwXor: PrecedenceBwXor, TOKBwAnd: PrecedenceBwAnd,
+	TOKEqual: PrecedenceComparison, TOKNotEqual: PrecedenceComparison, TOKLess: PrecedenceComparison,
+	TOKLessEqual: PrecedenceComparison, TOKGreater: PrecedenceComparison, TOKGreaterEqual: PrecedenceComparison,
+	TOKBwLShift: PrecedenceBwShift, TOKBwRShift: PrecedenceBwShift,
+	TOKPlus: PrecedenceSum, TOKMinus: PrecedenceSum,
+	TOKStar: PrecedenceProduct, TOKSlash: PrecedenceProduct, TOKPercent: PrecedenceProduct,
+	TOKLParen: PrecedenceCall,
+}
+
+func (t TokenKind) Precedence() Prec {
+	prec, ok := precedence[t]
+	if ok {
+		return prec
+	}
+	return PrecedenceLowest
+}
+func (t TokenKind) IsUnary() bool { return t == TOKMinus || t == TOKNot || t == TOKBwNot }
+
+// +------+
+// | Misc |
+// +------+
+
 func PrintTokens(toks []Token, showPos bool) {
 	headers := []string{"TOKEN", "LEXEME"}
 	if showPos {

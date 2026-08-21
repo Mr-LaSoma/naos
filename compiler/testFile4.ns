@@ -1,0 +1,10 @@
+package main;
+
+
+let a := 5 == ~10;
+
+let x: i32 = 4;
+let y := 5;
+
+const z : u32 = 1 + 2 * 3;
+const w: u1 = 1 * 2 + 3;

@@ -45,6 +45,10 @@ func (p *parser) expect(kind tokens.TokenKind, errorMsg string) (tokens.Token, e
 	return tokens.Token{}, fmt.Errorf("syntactic error at the position %v: %s (found insted %v)", t.Start, errorMsg, t.Kind)
 }
 
+func (p *parser) peekPrecedence() tokens.Prec {
+	return p.peekToken().Kind.Precedence()
+}
+
 // dropUselessAndErrors removes the usless tokens and if it encounters an error token
 // it returns an error with the token lexem as the text
 func (p *parser) dropUselessAndErrors() error {
