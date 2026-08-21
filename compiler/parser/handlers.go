@@ -581,6 +581,8 @@ func (p *parser) handleExpressionPrefix() (ast.ASTNode, error) {
 		return p.handleWhileStatement()
 	case tokens.TOKFor:
 		return p.handleForStatement()
+	case tokens.TOKMatch:
+		return p.handleMatchStatement()
 
 	case tokens.TOKAt:
 		p.readToken()
@@ -1044,6 +1046,16 @@ func (p *parser) handleBlock() (ast.ASTNode, error) {
 			statem, err = p.handleWhileStatement()
 		case tokens.TOKFor:
 			statem, err = p.handleForStatement()
+		case tokens.TOKMatch:
+			statem, err = p.handleMatchStatement()
+		case tokens.TOKDefer:
+			statem, err = p.handleDeferStatement()
+		case tokens.TOKReturn:
+			statem, err = p.handleReturnStatement()
+		case tokens.TOKContinue:
+			statem, err = p.handleContinueStatement()
+		case tokens.TOKBreak:
+			statem, err = p.handleBreakStatement()
 
 		default:
 			statem, err = p.handleExpressions(tokens.PrecedenceLowest)
@@ -1067,6 +1079,153 @@ func (p *parser) handleBlock() (ast.ASTNode, error) {
 	}
 
 	return blockNode, nil
+}
+
+// +-----------------+
+// | Jump conditions |
+// +-----------------+
+
+func (p *parser) handleMatchStatement() (ast.ASTNode, error) {
+	p.readToken()
+
+	_, err := p.expect(tokens.TOKLParen, "expected '(' after match keyword")
+	if err != nil {
+		return nil, err
+	}
+
+	expr, err := p.handleExpressions(tokens.PrecedenceLowest)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.expect(tokens.TOKRParen, "expected ')' after match expression")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.expect(tokens.TOKLBraces, "expected '{' after match expression")
+	if err != nil {
+		return nil, err
+	}
+
+	matchNode := &ast.MatchStatementNode{
+		Expression: expr,
+		Cases:      []ast.MatchCase{},
+	}
+
+	for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRBraces {
+		matchCase := ast.MatchCase{
+			Patterns: []ast.ASTNode{},
+			Body:     nil,
+		}
+
+		isAtFirstPattern := true
+		for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKBigArrow {
+			if !isAtFirstPattern {
+				_, err = p.expect(tokens.TOKComma, "expected ',' between match case patterns")
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			pattern, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				return nil, err
+			}
+
+			isAtFirstPattern = false
+			matchCase.Patterns = append(matchCase.Patterns, pattern)
+		}
+
+		_, err = p.expect(tokens.TOKBigArrow, "expected '=>' after case patterns")
+		if err != nil {
+			return nil, err
+		}
+
+		var bodyNode ast.ASTNode
+		if p.peekToken().Kind == tokens.TOKLBraces {
+			bodyNode, err = p.handleBlock()
+		} else {
+			bodyNode, err = p.handleExpressions(tokens.PrecedenceLowest)
+		}
+
+		if err == nil {
+			_, err = p.expect(tokens.TOKSemiColon, "expected ';' after match case statement")
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		matchCase.Body = bodyNode
+		matchNode.Cases = append(matchNode.Cases, matchCase)
+	}
+
+	_, err = p.expect(tokens.TOKRBraces, "expected '}' after match statement")
+	if err != nil {
+		return nil, err
+	}
+
+	return matchNode, nil
+}
+
+func (p *parser) handleDeferStatement() (ast.ASTNode, error) {
+	p.readToken()
+
+	var body ast.ASTNode
+	var err error
+
+	if p.peekToken().Kind == tokens.TOKLBraces {
+		body, err = p.handleBlock()
+	} else {
+		body, err = p.handleExpressions(tokens.PrecedenceLowest)
+	}
+
+	if err == nil {
+		_, err = p.expect(tokens.TOKSemiColon, "expected ';' after defer statement")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+func (p *parser) handleReturnStatement() (ast.ASTNode, error) {
+	p.readToken()
+
+	var expr ast.ASTNode = nil
+	if p.peekToken().Kind != tokens.TOKSemiColon {
+		var err error
+		expr, err = p.handleExpressions(tokens.PrecedenceLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err := p.expect(tokens.TOKSemiColon, "expected ';' after return statement")
+	if err != nil {
+		return nil, err
+	}
+	return &ast.ReturnStatement{Expression: expr}, nil
+}
+
+func (p *parser) handleContinueStatement() (ast.ASTNode, error) {
+	p.readToken()
+	_, err := p.expect(tokens.TOKSemiColon, "expected ';' after continue statement")
+	if err != nil {
+		return nil, err
+	}
+	return &ast.ContinueStatementNode{}, nil
+}
+
+func (p *parser) handleBreakStatement() (ast.ASTNode, error) {
+	p.readToken()
+	_, err := p.expect(tokens.TOKSemiColon, "expected ';' after break statement")
+	if err != nil {
+		return nil, err
+	}
+	return &ast.BreakStatementNode{}, nil
 }
 
 // +-------------+

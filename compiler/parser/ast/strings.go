@@ -428,3 +428,50 @@ func (n *ForStatementNode) String() string {
 
 	return fmt.Sprintf("for %s; %s; %s %s", init, cond, post, n.Body.String())
 }
+
+func (n *ReturnStatement) String() string {
+	if n.Expression == nil {
+		return "return"
+	}
+	return fmt.Sprintf("return %s", n.Expression.String())
+}
+
+func (n *BreakStatementNode) String() string {
+	return "break"
+}
+
+func (n *ContinueStatementNode) String() string {
+	return "continue"
+}
+
+func (n *DeferStatementNode) String() string {
+	return fmt.Sprintf("defer %s", n.Body.String())
+}
+
+// --- Match ---
+
+func (c *MatchCase) String() string {
+	patterns := make([]string, len(c.Patterns))
+	for i, p := range c.Patterns {
+		patterns[i] = p.String()
+	}
+	return fmt.Sprintf("%s => %s", strings.Join(patterns, ", "), c.Body.String())
+}
+
+func (n *MatchStatementNode) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("match ")
+	sb.WriteString(n.Expression.String())
+	sb.WriteString(" {")
+	for i := range n.Cases {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(n.Cases[i].String()))
+	}
+	if len(n.Cases) > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}

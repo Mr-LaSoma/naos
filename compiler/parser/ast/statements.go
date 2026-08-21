@@ -92,3 +92,35 @@ type ForStatementNode struct {
 }
 
 func (n *ForStatementNode) Node() {}
+
+type ReturnStatement struct {
+	Expression ASTNode
+}
+
+func (n *ReturnStatement) Node() {}
+
+type BreakStatementNode struct{}
+
+func (n *BreakStatementNode) Node() {}
+
+type ContinueStatementNode struct{}
+
+func (n *ContinueStatementNode) Node() {}
+
+type DeferStatementNode struct {
+	Body ASTNode
+}
+
+func (n *DeferStatementNode) Node() {}
+
+type MatchCase struct {
+	Patterns []ASTNode
+	Body     ASTNode
+}
+
+type MatchStatementNode struct {
+	Expression ASTNode
+	Cases      []MatchCase
+}
+
+func (n *MatchStatementNode) Node() {}
