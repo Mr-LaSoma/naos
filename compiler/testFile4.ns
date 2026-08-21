@@ -8,7 +8,7 @@ pub type c :: struct {
 
 let t := 5 == ~10;
 
-let x: i32 = @alloca(5);
+let x: i32 = alloca(5);
 let y := 5;
 
 const z : u32 = 1 + 2 * 3;
@@ -23,6 +23,6 @@ priv func2(wow: i32) -> void {
 }
 
 
-a # {
+NON # {
     pub func1() -> void {}
 }

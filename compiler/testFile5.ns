@@ -1,0 +1,14 @@
+package main;
+
+using @import("std.types.byte");
+using @import("std.types.usize");
+
+pub type cstr :: [*]byte;
+
+cstr # {
+    pub strlen(str: cstr) -> usize {
+        let i: usize = 0;
+        fora(i == 0, str_i_ != '\0', i+1);
+        returna(i);
+    }
+}

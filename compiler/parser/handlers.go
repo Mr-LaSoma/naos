@@ -620,9 +620,10 @@ func (p *parser) handleBlock() ([]ast.ASTNode, error) {
 				statem, err = p.handleAssignement(tok)
 			} else {
 				statem, err = p.handleExpressions(tokens.PrecedenceLowest)
-				if err != nil {
-					_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
-				}
+			}
+			_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
+			if err != nil {
+				return nil, err
 			}
 
 		case tokens.TOKAt:
