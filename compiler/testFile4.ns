@@ -1,10 +1,28 @@
 package main;
 
+pub type a :: u32;
+pub type b = u32;
+pub type c :: struct {
+    priv wow: i32;
+};
 
-let a := 5 == ~10;
+let t := 5 == ~10;
 
-let x: i32 = 4;
+let x: i32 = @alloca(5);
 let y := 5;
 
 const z : u32 = 1 + 2 * 3;
 const w: u1 = 1 * 2 + 3;
+
+
+pub func1() -> void {}
+priv func2(wow: i32) -> void {}
+priv func3(wow, wow2: i32) -> i32 {}
+priv func2(wow: i32) -> void {
+    let x: i32 = 5;
+}
+
+
+a # {
+    pub func1() -> void {}
+}

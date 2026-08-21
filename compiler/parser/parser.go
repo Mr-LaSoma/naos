@@ -18,7 +18,7 @@ func New(tokens []tokens.Token) *parser {
 }
 
 func (p *parser) Parse() (*ast.ASTFile, error) {
-	err := p.dropUselessAndErrors()
+	err := p.cleanupTokens()
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +40,29 @@ func (p *parser) Parse() (*ast.ASTFile, error) {
 	for !p.isAtEnd() {
 		tok := p.peekToken()
 		switch tok.Kind {
+		case tokens.TOKId:
+			ntok := p.peekNToken(1)
+			if ntok.Kind == tokens.TOKLParen {
+				declNode, err := p.handleFunctionDecl(false)
+				if err != nil {
+					return nil, err
+				}
+				fileAst.Decls = append(fileAst.Decls, declNode)
+			}
+
+			if ntok.Kind == tokens.TOKHashtag {
+				p.readToken()
+				p.readToken()
+
+				extNode, err := p.HandleTypeExtension(tok.Lexeme)
+				if err != nil {
+					return nil, err
+				}
+				fileAst.Decls = append(fileAst.Decls, extNode)
+			}
+
+			continue
+
 		case tokens.TOKLet, tokens.TOKConst:
 			p.readToken()
 			isConst := tok.Kind == tokens.TOKConst
@@ -56,6 +79,16 @@ func (p *parser) Parse() (*ast.ASTFile, error) {
 			ntok := p.peekToken()
 
 			switch ntok.Kind {
+			case tokens.TOKId:
+				if p.peekNToken(1).Kind == tokens.TOKLParen {
+					declNode, err := p.handleFunctionDecl(isPublic)
+					if err != nil {
+						return nil, err
+					}
+					fileAst.Decls = append(fileAst.Decls, declNode)
+				}
+				continue
+
 			case tokens.TOKLet, tokens.TOKConst:
 				p.readToken()
 				isConst := tok.Kind == tokens.TOKConst

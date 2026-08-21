@@ -20,6 +20,18 @@ func (t TokenKind) IsKeyword() bool         { return tok_keyword_beg < t && t < 
 func (t TokenKind) IsUseless() bool         { return t == TOKMonoComment || t == TOKMultiComment }
 func (t TokenKind) IsError() bool           { return t == TOKInvalid || t == TOKNotImplemented }
 
+var assign = map[TokenKind]struct{}{
+	TOKAssign: {}, TOKPlusAssign: {}, TOKMinusAssign: {},
+	TOKStarAssign: {}, TOKSlashAssign: {}, TOKPercentAssign: {},
+	TOKBwAndAssign: {}, TOKBwOrAssign: {}, TOKBwXorAssign: {},
+	TOKBwLShiftAssign: {}, TOKBwRShiftAssign: {},
+}
+
+func (t TokenKind) IsAssign() bool {
+	_, ok := assign[t]
+	return ok
+}
+
 // +------------+
 // | Precedence |
 // +------------+

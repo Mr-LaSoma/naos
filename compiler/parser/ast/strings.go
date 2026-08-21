@@ -131,3 +131,77 @@ func (n *StructNode) String() string {
 	}
 	return fmt.Sprintf("struct { %s }", strings.Join(fields, ", "))
 }
+
+// --- Functions ---
+
+func (p *Parameter) String() string {
+	prefix := ""
+	if p.IsConst {
+		prefix = "const "
+	}
+	return fmt.Sprintf("%s%s: %s", prefix, p.Name, p.Type.String())
+}
+
+func (n *FuncDeclNode) String() string {
+	var sb strings.Builder
+
+	if n.IsPublic {
+		sb.WriteString("pub ")
+	}
+	sb.WriteString("func ")
+	sb.WriteString(n.Name)
+	sb.WriteString("(")
+
+	params := make([]string, len(n.Parameters))
+	for i := range n.Parameters {
+		params[i] = n.Parameters[i].String()
+	}
+	sb.WriteString(strings.Join(params, ", "))
+	sb.WriteString(")")
+
+	if n.ReturnType != nil {
+		sb.WriteString(" ")
+		sb.WriteString(n.ReturnType.String())
+	}
+
+	sb.WriteString(" {")
+	for _, stmt := range n.Body {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(stmt.String()))
+	}
+	if len(n.Body) > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}
+
+func indentBody(s string) string {
+	lines := strings.Split(s, "\n")
+	for i := 1; i < len(lines); i++ {
+		lines[i] = "\t" + lines[i]
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (n *AssignementNode) String() string {
+	return fmt.Sprintf("%s %s %s", n.Left, n.Operator, n.Right.String())
+}
+
+func (n *TypeExtensionNode) String() string {
+	var sb strings.Builder
+
+	sb.WriteString(n.TargetType)
+	sb.WriteString(" # {")
+	for _, m := range n.Methods {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(m.String()))
+	}
+	if len(n.Methods) > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}

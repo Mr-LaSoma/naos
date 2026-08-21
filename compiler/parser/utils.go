@@ -49,9 +49,7 @@ func (p *parser) peekPrecedence() tokens.Prec {
 	return p.peekToken().Kind.Precedence()
 }
 
-// dropUselessAndErrors removes the usless tokens and if it encounters an error token
-// it returns an error with the token lexem as the text
-func (p *parser) dropUselessAndErrors() error {
+func (p *parser) cleanupTokens() error {
 	ntokens := []tokens.Token{}
 	for _, tok := range p.tokens {
 		if tok.Kind.IsError() {
@@ -60,7 +58,40 @@ func (p *parser) dropUselessAndErrors() error {
 		if !tok.Kind.IsUseless() {
 			ntokens = append(ntokens, tok)
 		}
+
+		switch tok.Kind {
+		case tokens.TOKIncrement:
+			ntokens = append(ntokens, tokens.Token{
+				Kind:   tokens.TOKPlusAssign,
+				Lexeme: "",
+				Start:  tok.Start,
+				End:    tok.End,
+			})
+			ntokens = append(ntokens, tokens.Token{
+				Kind:   tokens.TOKInt,
+				Lexeme: "1",
+				Start:  tok.Start,
+				End:    tok.End,
+			})
+			continue
+
+		case tokens.TOKDecrement:
+			ntokens = append(ntokens, tokens.Token{
+				Kind:   tokens.TOKMinusAssign,
+				Lexeme: "",
+				Start:  tok.Start,
+				End:    tok.End,
+			})
+			ntokens = append(ntokens, tokens.Token{
+				Kind:   tokens.TOKInt,
+				Lexeme: "1",
+				Start:  tok.Start,
+				End:    tok.End,
+			})
+			continue
+		}
 	}
+
 	p.tokens = ntokens
 	return nil
 }

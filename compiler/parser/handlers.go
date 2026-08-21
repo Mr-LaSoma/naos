@@ -368,6 +368,14 @@ func (p *parser) handleExpressionPrefix() (ast.ASTNode, error) {
 	case tokens.TOKId:
 		p.readToken()
 		return &ast.IdentifierRefNode{Name: tok.Lexeme}, nil
+	case tokens.TOKAt:
+		p.readToken()
+		_, err := p.expect(tokens.TOKId, "expected action name")
+		if err != nil {
+			return nil, err
+		}
+
+		panic("not yet implemented '@' actions")
 
 	case tokens.TOKLParen:
 		p.readToken()
@@ -448,4 +456,251 @@ func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error
 		Operator: tok.Kind.String(),
 		Right:    rightNode,
 	}, nil
+}
+
+func (p *parser) handleAssignement(tok tokens.Token) (ast.ASTNode, error) {
+	opTok := p.peekToken()
+	if !opTok.Kind.IsAssign() {
+		return nil, fmt.Errorf("expected assignement operator after identifier, found %s", opTok.Kind.String())
+	}
+	p.readToken()
+
+	rightExpr, err := p.handleExpressions(tokens.PrecedenceLowest)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.expect(tokens.TOKSemiColon, "expected ';' after assignement statement")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.AssignementNode{
+		Left:     tok.Lexeme,
+		Operator: opTok.Kind.String(),
+		Right:    rightExpr,
+	}, nil
+}
+
+// +-----------+
+// | Functions |
+// +-----------+
+
+func (p *parser) handleFunctionDecl(isPublic bool) (ast.ASTNode, error) {
+	nameTok, err := p.expect(tokens.TOKId, "expected function name")
+	if err != nil {
+		return nil, err
+	}
+
+	params, err := p.handleParameters()
+	if err != nil {
+		return nil, err
+	}
+
+	var returnType ast.ASTNode = nil
+	if p.peekToken().Kind == tokens.TOKArrow {
+		p.readToken()
+		returnType, err = p.handleTypeSignature()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	body, err := p.handleBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.FuncDeclNode{
+		IsPublic:   isPublic,
+		Name:       nameTok.Lexeme,
+		Parameters: params,
+		ReturnType: returnType,
+		Body:       body,
+	}, nil
+}
+
+type tempParam struct {
+	IsConst bool
+	Name    string
+}
+
+func (p *parser) handleParameters() ([]ast.Parameter, error) {
+	params := []ast.Parameter{}
+
+	_, err := p.expect(tokens.TOKLParen, "expected '(' after function name")
+	if err != nil {
+		return nil, err
+	}
+
+	isFirstParam := true
+
+	tempGroup := []tempParam{}
+
+	for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRParen {
+		if !isFirstParam {
+			_, err = p.expect(tokens.TOKComma, "expected ',' between function parameters")
+			if err != nil {
+				return nil, err
+			}
+		}
+		isFirstParam = false
+
+		isConst := false
+		if p.peekToken().Kind == tokens.TOKConst {
+			p.readToken()
+			isConst = true
+		}
+
+		paramNameTok, err := p.expect(tokens.TOKId, "expected parameter name")
+		if err != nil {
+			return nil, err
+		}
+
+		tempGroup = append(tempGroup, tempParam{
+			IsConst: isConst,
+			Name:    paramNameTok.Lexeme,
+		})
+
+		if p.peekToken().Kind == tokens.TOKColon {
+			p.readToken()
+
+			sharedType, err := p.handleTypeSignature()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, tp := range tempGroup {
+				params = append(params, ast.Parameter{
+					IsConst: tp.IsConst,
+					Name:    tp.Name,
+					Type:    sharedType,
+				})
+			}
+
+			tempGroup = []tempParam{}
+		}
+	}
+
+	if len(tempGroup) > 0 {
+		return nil, fmt.Errorf("expected ':' at the end of the parameters")
+	}
+
+	_, err = p.expect(tokens.TOKRParen, "expected ')' after parameters")
+	if err != nil {
+		return nil, err
+	}
+
+	return params, nil
+}
+
+func (p *parser) handleBlock() ([]ast.ASTNode, error) {
+	body := []ast.ASTNode{}
+
+	_, err := p.expect(tokens.TOKLBraces, "expected '{' after function name")
+	if err != nil {
+		return nil, err
+	}
+
+	for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRBraces {
+		var statem ast.ASTNode
+		tok := p.peekToken()
+
+		switch tok.Kind {
+		case tokens.TOKLet, tokens.TOKConst:
+			p.readToken()
+			isConst := tok.Kind == tokens.TOKConst
+			statem, err = p.handleVariableDecl(false, isConst)
+
+		case tokens.TOKId:
+			next := p.peekNToken(1)
+
+			if next.Kind.IsAssign() {
+				p.readToken()
+				statem, err = p.handleAssignement(tok)
+			} else {
+				statem, err = p.handleExpressions(tokens.PrecedenceLowest)
+				if err != nil {
+					_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
+				}
+			}
+
+		case tokens.TOKAt:
+			p.readToken()
+			_, err = p.expect(tokens.TOKId, "expected action name")
+			if err != nil {
+				return nil, err
+			}
+
+			panic("not yet implemented '@' actions")
+
+		default:
+			statem, err = p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
+			}
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, statem)
+	}
+
+	_, err = p.expect(tokens.TOKRBraces, "expected '}' after function body")
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
+// +---------------+
+// | TypeExtension |
+// +---------------+
+
+func (p *parser) HandleTypeExtension(targetType string) (ast.ASTNode, error) {
+	_, err := p.expect(tokens.TOKLBraces, "expected '{' after extension operator")
+	if err != nil {
+		return nil, err
+	}
+
+	extNode := &ast.TypeExtensionNode{
+		TargetType: targetType,
+		Methods:    []ast.ASTNode{},
+	}
+
+	for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRBraces {
+		var methodNode ast.ASTNode
+		tok := p.peekToken()
+
+		switch tok.Kind {
+		case tokens.TOKPub, tokens.TOKPriv:
+			p.readToken()
+			isPublic := tok.Kind == tokens.TOKPub
+
+			methodNode, err = p.handleFunctionDecl(isPublic)
+
+		case tokens.TOKId:
+			methodNode, err = p.handleFunctionDecl(false)
+
+		case tokens.TOKAt:
+			panic("not yet implemented the '@' symbol in the type extension")
+
+		default:
+			return nil, fmt.Errorf("unexpected token %v (value %v) in type %s extension block", tok.Kind, tok.Lexeme, targetType)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		extNode.Methods = append(extNode.Methods, methodNode)
+	}
+
+	_, err = p.expect(tokens.TOKRBraces, "expected '}' after type extension block")
+	if err != nil {
+		return nil, err
+	}
+
+	return extNode, nil
 }
