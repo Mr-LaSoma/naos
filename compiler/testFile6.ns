@@ -6,6 +6,8 @@ pub type bool :: u1;
 pub const true: bool = 1;
 pub const false: bool = 1;
 
+pub type test :: interface {}
+
 bool # {
     @overload @as(const source: u1) -> bool {
         @unreachable;

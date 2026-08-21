@@ -265,3 +265,43 @@ func (n *OverloadDeclNode) String() string {
 func (n *MemberAccessNode) String() string {
 	return fmt.Sprintf("%v.%s", n.Left, n.Member)
 }
+
+func (n *FuncSignatureNode) String() string {
+	var sb strings.Builder
+
+	if n.IsPublic {
+		sb.WriteString("pub ")
+	}
+	sb.WriteString(n.Name)
+	sb.WriteString("(")
+
+	params := make([]string, len(n.Parameter))
+	for i := range n.Parameter {
+		params[i] = n.Parameter[i].String()
+	}
+	sb.WriteString(strings.Join(params, ", "))
+	sb.WriteString(")")
+
+	if n.ReturnType != nil {
+		sb.WriteString(" -> ")
+		sb.WriteString(n.ReturnType.String())
+	}
+
+	return sb.String()
+}
+
+func (n *InterfaceLiteralNode) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("interface {")
+	for i := range n.Methods {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(n.Methods[i].String()))
+	}
+	if len(n.Methods) > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}

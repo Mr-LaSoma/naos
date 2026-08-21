@@ -100,7 +100,7 @@ var keywords = map[string]TokenKind{
 	"return": TOKReturn, "continue": TOKContinue, "break": TOKBreak,
 
 	"let": TOKLet, "const": TOKConst, "struct": TOKStruct,
-	"enum": TOKEnum, "type": TOKType,
+	"enum": TOKEnum, "type": TOKType, "interface": TOKInterface,
 }
 
 func StringIsKeyword(str string) bool {

@@ -57,3 +57,18 @@ type StructNode struct {
 }
 
 func (n *StructNode) Node() {}
+
+type FuncSignatureNode struct {
+	IsPublic   bool
+	Name       string
+	Parameter  []Parameter
+	ReturnType ASTNode
+}
+
+func (n *FuncSignatureNode) Node() {}
+
+type InterfaceLiteralNode struct {
+	Methods []*FuncSignatureNode
+}
+
+func (n *InterfaceLiteralNode) Node() {}

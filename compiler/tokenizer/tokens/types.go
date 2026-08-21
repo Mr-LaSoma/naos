@@ -140,11 +140,12 @@ const (
 	TOKContinue // continue
 	TOKBreak    // break
 
-	TOKLet    // let
-	TOKConst  // const
-	TOKStruct // struct
-	TOKEnum   // enum
-	TOKType   // type
+	TOKLet       // let
+	TOKConst     // const
+	TOKStruct    // struct
+	TOKEnum      // enum
+	TOKType      // type
+	TOKInterface // interface
 
 	// end of keywords
 	tok_keyword_end
@@ -235,11 +236,12 @@ var tokens = [...]string{
 	TOKContinue: "continue",
 	TOKBreak:    "break",
 
-	TOKLet:    "let",
-	TOKConst:  "const",
-	TOKStruct: "struct",
-	TOKEnum:   "enum",
-	TOKType:   "type",
+	TOKLet:       "let",
+	TOKConst:     "const",
+	TOKStruct:    "struct",
+	TOKEnum:      "enum",
+	TOKType:      "type",
+	TOKInterface: "interface",
 }
 
 func (t TokenKind) String() string {

@@ -227,6 +227,53 @@ func (p *parser) handleTypeSignature() (ast.ASTNode, error) {
 		}
 		return structNode, nil
 
+	case tokens.TOKInterface:
+		p.readToken()
+		_, err := p.expect(tokens.TOKLBraces, "expected '{' after 'interface'")
+		if err != nil {
+			return nil, err
+		}
+
+		interfaceNode := &ast.InterfaceLiteralNode{Methods: []*ast.FuncSignatureNode{}}
+		for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRBraces {
+			isMethodPublic := false
+			if p.peekToken().Kind == tokens.TOKPub || p.peekToken().Kind == tokens.TOKPriv {
+				isMethodPublic = p.readToken().Kind == tokens.TOKPub
+			}
+
+			methodName, err := p.expect(tokens.TOKId, "expected method name inside interface")
+			if err != nil {
+				return nil, err
+			}
+
+			params, err := p.handleParameters()
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = p.expect(tokens.TOKArrow, "expected '->' after method parameters")
+			if err != nil {
+				return nil, err
+			}
+
+			returnType, err := p.handleTypeSignature()
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = p.expect(tokens.TOKComma, "expected ',' after method")
+			if err != nil {
+				return nil, err
+			}
+
+			interfaceNode.Methods = append(interfaceNode.Methods, &ast.FuncSignatureNode{
+				IsPublic:   isMethodPublic,
+				Name:       methodName.Lexeme,
+				Parameter:  params,
+				ReturnType: returnType,
+			})
+		}
+
 	case tokens.TOKId:
 		p.readToken()
 		return &ast.TypeReferanceNode{Name: tok.Lexeme}, nil
@@ -263,7 +310,7 @@ func (p *parser) handleStructFields() (ast.ASTNode, error) {
 			return nil, err
 		}
 
-		_, err = p.expect(tokens.TOKSemiColon, "expected ';' after field declaration")
+		_, err = p.expect(tokens.TOKComma, "expected ',' after field declaration")
 		if err != nil {
 			return nil, err
 		}
