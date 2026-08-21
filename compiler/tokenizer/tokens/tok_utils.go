@@ -61,7 +61,7 @@ var precedence = map[TokenKind]Prec{
 	TOKBwLShift: PrecedenceBwShift, TOKBwRShift: PrecedenceBwShift,
 	TOKPlus: PrecedenceSum, TOKMinus: PrecedenceSum,
 	TOKStar: PrecedenceProduct, TOKSlash: PrecedenceProduct, TOKPercent: PrecedenceProduct,
-	TOKLParen: PrecedenceCall,
+	TOKLParen: PrecedenceCall, TOKPeriod: PrecedenceCall,
 }
 
 func (t TokenKind) Precedence() Prec {

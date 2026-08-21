@@ -44,3 +44,13 @@ type TypeExtensionNode struct {
 }
 
 func (n *TypeExtensionNode) Node() {}
+
+type OverloadDeclNode struct {
+	ActionName string
+	Parameters []Parameter
+	ReturnType ASTNode
+	Body       []ASTNode
+	IsInvalid  bool
+}
+
+func (n *OverloadDeclNode) Node() {}

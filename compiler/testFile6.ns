@@ -1,0 +1,17 @@
+package test;
+
+math :: @import("wow");
+
+pub type bool :: u1;
+pub const true: bool = 1;
+pub const false: bool = 1;
+
+bool # {
+    @overload @as(const source: u1) -> bool {
+        @unreachable;
+        @free(test);
+        math.PI;
+        math.Floor;
+    }
+    @overload @as(const self: bool) -> u1 @invalid
+}

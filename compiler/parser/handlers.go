@@ -42,12 +42,23 @@ func (p *parser) handleImports(fileAst *ast.ASTFile) error {
 				return err
 			}
 			fileAst.Imports = append(fileAst.Imports, importNode)
-		} else if p.isAliasImport() {
+
+		} else if tok.Kind == tokens.TOKId && p.peekNToken(1).Kind == tokens.TOKDoubleColon {
 			// can skip id, ::, @ and import
 			aliasTok := p.readToken()
-			p.readToken()
-			p.readToken()
-			p.readToken()
+
+			_, err := p.expect(tokens.TOKDoubleColon, "expected '::' after import alias")
+			if err != nil {
+				return err
+			}
+			_, err = p.expect(tokens.TOKAt, "expected '@import' after ::")
+			if err != nil {
+				return err
+			}
+			importTok, err := p.expect(tokens.TOKId, "expected 'import' after '@'")
+			if err != nil || importTok.Lexeme != "import" {
+				return fmt.Errorf("expected 'import' after '@', found %s", importTok.Lexeme)
+			}
 
 			importNode, err := p.handleAliasImport(aliasTok.Lexeme)
 			if err != nil {
@@ -119,17 +130,6 @@ func (p *parser) handleAliasImport(alias string) (ast.ASTNode, error) {
 
 	cleanPath := pathTok.Lexeme[1 : len(pathTok.Lexeme)-1]
 	return &ast.ImportAliasNode{Alias: alias, Path: cleanPath}, nil
-}
-
-func (p *parser) isAliasImport() bool {
-	if p.isAtEnd() {
-		return false
-	}
-
-	tok := p.peekToken()
-	importTok := p.peekNToken(3) // id :: @ id <- the 4° one
-	return tok.Kind == tokens.TOKId && p.peekNToken(1).Kind == tokens.TOKDoubleColon &&
-		p.peekNToken(2).Kind == tokens.TOKAt && (importTok.Kind == tokens.TOKId && importTok.Lexeme == "import")
 }
 
 // +-------+
@@ -370,12 +370,48 @@ func (p *parser) handleExpressionPrefix() (ast.ASTNode, error) {
 		return &ast.IdentifierRefNode{Name: tok.Lexeme}, nil
 	case tokens.TOKAt:
 		p.readToken()
-		_, err := p.expect(tokens.TOKId, "expected action name")
+		actionTok, err := p.expect(tokens.TOKId, "expected action name")
 		if err != nil {
 			return nil, err
 		}
 
-		panic("not yet implemented '@' actions")
+		args := []ast.ASTNode{}
+
+		if tokens.StringIsActionWParen(actionTok.Lexeme) {
+			_, err := p.expect(tokens.TOKLParen, "expected '(' after action name")
+			if err != nil {
+				return nil, err
+			}
+
+			isFirstArgument := true
+			for p.peekToken().Kind != tokens.TOKRParen && !p.isAtEnd() {
+				if !isFirstArgument {
+					_, err := p.expect(tokens.TOKComma, "expected ',' between arguments of function")
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				arg, err := p.handleExpressions(tokens.PrecedenceLowest)
+				if err != nil {
+					return nil, err
+				}
+
+				args = append(args, arg)
+				isFirstArgument = false
+			}
+
+			_, err = p.expect(tokens.TOKRParen, "expected ')' after function arguments")
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return &ast.CompilerActionNode{
+			Name:      actionTok.Lexeme,
+			Left:      nil,
+			Arguments: args,
+		}, nil
 
 	case tokens.TOKLParen:
 		p.readToken()
@@ -408,8 +444,20 @@ func (p *parser) handleExpressionPrefix() (ast.ASTNode, error) {
 func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error) {
 	tok := p.peekToken()
 
-	// function call
-	if tok.Kind == tokens.TOKLParen {
+	switch tok.Kind {
+	case tokens.TOKPeriod:
+		p.readToken()
+
+		memberTok, err := p.expect(tokens.TOKId, "expected member name after '.'")
+		if err != nil {
+			return nil, err
+		}
+		return &ast.MemberAccessNode{
+			Left:   leftNode,
+			Member: memberTok.Lexeme,
+		}, nil
+
+	case tokens.TOKLParen:
 		p.readToken()
 
 		callNode := &ast.CallExpressionNode{
@@ -441,6 +489,51 @@ func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error
 		}
 
 		return callNode, nil
+
+	case tokens.TOKAt:
+		p.readToken()
+		actionTok, err := p.expect(tokens.TOKId, "expected action name")
+		if err != nil {
+			return nil, err
+		}
+
+		args := []ast.ASTNode{}
+
+		if tokens.StringIsActionWParen(actionTok.Lexeme) {
+			_, err := p.expect(tokens.TOKLParen, "expected '(' after action name")
+			if err != nil {
+				return nil, err
+			}
+
+			isFirstArgument := true
+			for p.peekToken().Kind != tokens.TOKRParen && !p.isAtEnd() {
+				if !isFirstArgument {
+					_, err := p.expect(tokens.TOKComma, "expected ',' between arguments of function")
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				arg, err := p.handleExpressions(tokens.PrecedenceLowest)
+				if err != nil {
+					return nil, err
+				}
+
+				args = append(args, arg)
+				isFirstArgument = false
+			}
+
+			_, err = p.expect(tokens.TOKRParen, "expected ')' after function arguments")
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return &ast.CompilerActionNode{
+			Name:      actionTok.Lexeme,
+			Left:      nil,
+			Arguments: args,
+		}, nil
 	}
 
 	currentPrec := p.peekPrecedence()
@@ -620,32 +713,31 @@ func (p *parser) handleBlock() ([]ast.ASTNode, error) {
 				statem, err = p.handleAssignement(tok)
 			} else {
 				statem, err = p.handleExpressions(tokens.PrecedenceLowest)
-			}
-			_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
-			if err != nil {
-				return nil, err
+				if err == nil {
+					_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression statement")
+				}
 			}
 
 		case tokens.TOKAt:
-			p.readToken()
-			_, err = p.expect(tokens.TOKId, "expected action name")
-			if err != nil {
-				return nil, err
+			statem, err = p.handleExpressions(tokens.PrecedenceLowest)
+			if err == nil {
+				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after compiler action statement")
 			}
-
-			panic("not yet implemented '@' actions")
 
 		default:
 			statem, err = p.handleExpressions(tokens.PrecedenceLowest)
-			if err != nil {
-				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
+			if err == nil {
+				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after statement")
 			}
 		}
 
 		if err != nil {
 			return nil, err
 		}
-		body = append(body, statem)
+
+		if statem != nil {
+			body = append(body, statem)
+		}
 	}
 
 	_, err = p.expect(tokens.TOKRBraces, "expected '}' after function body")
@@ -686,7 +778,18 @@ func (p *parser) HandleTypeExtension(targetType string) (ast.ASTNode, error) {
 			methodNode, err = p.handleFunctionDecl(false)
 
 		case tokens.TOKAt:
-			panic("not yet implemented the '@' symbol in the type extension")
+			p.readToken()
+			identTok, errt := p.expect(tokens.TOKId, "expected compiler action name")
+			if errt != nil {
+				return nil, errt
+			}
+
+			switch identTok.Lexeme {
+			case "overload":
+				methodNode, err = p.handleCompileOverload()
+			default:
+				panic("not yet implemented the '@' (exluded the 'overload') symbol in the type extension")
+			}
 
 		default:
 			return nil, fmt.Errorf("unexpected token %v (value %v) in type %s extension block", tok.Kind, tok.Lexeme, targetType)
@@ -704,4 +807,60 @@ func (p *parser) HandleTypeExtension(targetType string) (ast.ASTNode, error) {
 	}
 
 	return extNode, nil
+}
+
+func (p *parser) handleCompileOverload() (ast.ASTNode, error) {
+	_, err := p.expect(tokens.TOKAt, "expected '@' before action name in overload")
+	if err != nil {
+		return nil, err
+	}
+
+	actionTok, err := p.expect(tokens.TOKId, "expected action name after '@'")
+	if err != nil {
+		return nil, err
+	}
+
+	params, err := p.handleParameters()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.expect(tokens.TOKArrow, "expected '->' after overload parameters")
+	if err != nil {
+		return nil, err
+	}
+
+	returnType, err := p.handleTypeSignature()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken().Kind == tokens.TOKAt {
+		p.readToken()
+		invalidTok, err := p.expect(tokens.TOKId, "expected compiler directive")
+		if err != nil || invalidTok.Lexeme != "invalid" {
+			return nil, fmt.Errorf("expected 'invalid' directive after '@'")
+		}
+
+		return &ast.OverloadDeclNode{
+			ActionName: actionTok.Lexeme,
+			Parameters: params,
+			ReturnType: returnType,
+			Body:       nil,
+			IsInvalid:  true,
+		}, nil
+	}
+
+	body, err := p.handleBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.OverloadDeclNode{
+		ActionName: actionTok.Lexeme,
+		Parameters: params,
+		ReturnType: returnType,
+		Body:       body,
+		IsInvalid:  false,
+	}, nil
 }

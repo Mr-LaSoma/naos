@@ -21,3 +21,18 @@ type BinaryExpressionNode struct {
 }
 
 func (n *BinaryExpressionNode) Node() {}
+
+type CompilerActionNode struct {
+	Name      string
+	Left      ASTNode
+	Arguments []ASTNode
+}
+
+func (n *CompilerActionNode) Node() {}
+
+type MemberAccessNode struct {
+	Left   ASTNode
+	Member string
+}
+
+func (n *MemberAccessNode) Node() {}

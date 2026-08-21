@@ -205,3 +205,63 @@ func (n *TypeExtensionNode) String() string {
 
 	return sb.String()
 }
+
+func (n *CompilerActionNode) String() string {
+	var sb strings.Builder
+	if n.Left != nil {
+		sb.WriteString(n.Left.String())
+		sb.WriteString(" ")
+	}
+	sb.WriteString("@")
+	sb.WriteString(n.Name)
+	sb.WriteString("(")
+	args := make([]string, len(n.Arguments))
+	for i := range n.Arguments {
+		args[i] = n.Arguments[i].String()
+	}
+	sb.WriteString(strings.Join(args, ", "))
+	sb.WriteString(")")
+
+	return sb.String()
+}
+
+func (n *OverloadDeclNode) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("@overload @")
+	sb.WriteString(n.ActionName)
+	sb.WriteString("(")
+
+	params := make([]string, len(n.Parameters))
+	for i := range n.Parameters {
+		params[i] = n.Parameters[i].String()
+	}
+	sb.WriteString(strings.Join(params, ", "))
+	sb.WriteString(")")
+
+	if n.ReturnType != nil {
+		sb.WriteString(" -> ")
+		sb.WriteString(n.ReturnType.String())
+	}
+
+	if n.IsInvalid {
+		sb.WriteString(" @invalid")
+		return sb.String()
+	}
+
+	sb.WriteString(" {")
+	for _, stmt := range n.Body {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(stmt.String()))
+	}
+	if len(n.Body) > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}
+
+func (n *MemberAccessNode) String() string {
+	return fmt.Sprintf("%v.%s", n.Left, n.Member)
+}

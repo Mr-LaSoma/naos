@@ -1,28 +1,28 @@
 package utils;
 
-@import("std.abi.cstr");
+using @import("std.abi.cstr");
 
-pub type Option<T> :: enum { // love you rust btw
-    None,
-    Some(T),
-}
+pub type Option<T> :: enum {
+    Some(T);
+None;
+};
 
 Option < T > # {
-    pub isSome() -> bool { return @isvariant(self, Option.Some); }
-    pub isNone() -> bool { return @isvariant(self, Option.None); }
+    pub isSome(const self: *Option) -> bool { return @isvariant(self, Option.Some); }
+    pub isNone(const self: *Option) -> bool { return @isvariant(self, Option.None); }
 
-    pub unwrap() -> T {
-        if self.isNone() { @panic("unwrapped none option"); }
+    pub unwrap(const self: *Option) -> T {
+        if (self.isNone()) { @panic("unwrapped none option"); }
         return @valueof(self);
     }
 
-    pub expect(errorMsg: cstr) -> T {
-        if self.isNone() { @panic(errorMsg); }
+    pub expect(const errorMsg: cstr) -> T {
+        if (self.isNone()) { @panic(errorMsg); }
         return @valueof(self);
     }
 
-    pub unwrapOr(defaultValue: T) -> T {
-        if self.isNone() { return defaultValue; }
+    pub unwrapOr(const value: T) -> T {
+        if (self.isNone()) { return value; }
         return @valueof(self);
     }
 }

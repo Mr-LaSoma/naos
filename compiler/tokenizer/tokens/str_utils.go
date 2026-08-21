@@ -249,3 +249,15 @@ func RuneToEscapeKind(ch rune) (escapeKind, error) {
 	}
 	return 0, fmt.Errorf("%c is not a valid escape sequence base", ch)
 }
+
+// +---------+
+// | Actions |
+// +---------+
+
+func StringIsActionWParen(str string) bool {
+	switch str {
+	case "null", "unreachable":
+		return false
+	}
+	return true
+}
