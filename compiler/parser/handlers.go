@@ -575,6 +575,13 @@ func (p *parser) handleExpressionPrefix() (ast.ASTNode, error) {
 	case tokens.TOKId:
 		p.readToken()
 		return &ast.IdentifierRefNode{Name: tok.Lexeme}, nil
+	case tokens.TOKIf:
+		return p.handleIfStatement()
+	case tokens.TOKWhile:
+		return p.handleWhileStatement()
+	case tokens.TOKFor:
+		return p.handleForStatement()
+
 	case tokens.TOKAt:
 		p.readToken()
 		actionTok, err := p.expect(tokens.TOKId, "expected action name")
@@ -645,7 +652,12 @@ func (p *parser) handleExpressionPrefix() (ast.ASTNode, error) {
 		return &ast.PrefixExpressionNode{Operator: tok.Kind.String(), Right: right}, nil
 	}
 
-	return nil, fmt.Errorf("expected start of expression, found token %v (value %s)", tok.Kind, tok.Lexeme)
+	block, err := p.handleBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
 }
 
 func (p *parser) handleExpressionInfix(leftNode ast.ASTNode) (ast.ASTNode, error) {
@@ -879,6 +891,8 @@ func (p *parser) handleFunctionDecl(isPublic bool) (ast.ASTNode, error) {
 		return nil, err
 	}
 
+	fmt.Printf("TOKNEW: %v | %v\n", p.peekToken(), body)
+
 	return &ast.FuncDeclNode{
 		IsPublic:   isPublic,
 		Name:       nameTok.Lexeme,
@@ -966,15 +980,36 @@ func (p *parser) handleParameters() ([]ast.Parameter, error) {
 	return params, nil
 }
 
-func (p *parser) handleBlock() ([]ast.ASTNode, error) {
-	body := []ast.ASTNode{}
-
-	_, err := p.expect(tokens.TOKLBraces, "expected '{' after function name")
+func (p *parser) handleBlock() (ast.ASTNode, error) {
+	_, err := p.expect(tokens.TOKLBraces, "expected '{' in block declaration")
 	if err != nil {
 		return nil, err
 	}
 
+	blockNode := &ast.BlockExpressionNode{
+		Statements: []ast.ASTNode{},
+		Value:      nil,
+	}
+
 	for !p.isAtEnd() && p.peekToken().Kind != tokens.TOKRBraces {
+		if p.peekToken().Kind == tokens.TOKBigArrow {
+			p.readToken()
+
+			retValue, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				return nil, err
+			}
+
+			blockNode.Value = retValue
+
+			_, err = p.expect(tokens.TOKSemiColon, "expected ';' after block return statement")
+			if err != nil {
+				return nil, err
+			}
+
+			break
+		}
+
 		var statem ast.ASTNode
 		tok := p.peekToken()
 
@@ -1003,6 +1038,13 @@ func (p *parser) handleBlock() ([]ast.ASTNode, error) {
 				_, err = p.expect(tokens.TOKSemiColon, "expected ';' after compiler action statement")
 			}
 
+		case tokens.TOKIf:
+			statem, err = p.handleIfStatement()
+		case tokens.TOKWhile:
+			statem, err = p.handleWhileStatement()
+		case tokens.TOKFor:
+			statem, err = p.handleForStatement()
+
 		default:
 			statem, err = p.handleExpressions(tokens.PrecedenceLowest)
 			if err == nil {
@@ -1015,7 +1057,7 @@ func (p *parser) handleBlock() ([]ast.ASTNode, error) {
 		}
 
 		if statem != nil {
-			body = append(body, statem)
+			blockNode.Statements = append(blockNode.Statements, statem)
 		}
 	}
 
@@ -1024,14 +1066,196 @@ func (p *parser) handleBlock() ([]ast.ASTNode, error) {
 		return nil, err
 	}
 
-	return body, nil
+	return blockNode, nil
+}
+
+// +-------------+
+// | ControlFlow |
+// +-------------+
+
+func (p *parser) handleIfStatement() (ast.ASTNode, error) {
+	p.readToken()
+
+	ifNode := &ast.IfStatementNode{
+		Conditions: []ast.IfCondition{},
+		ElseBody:   nil,
+	}
+	_, err := p.expect(tokens.TOKLParen, "expected '(' before if condition")
+	if err != nil {
+		return nil, err
+	}
+
+	cond, err := p.handleExpressions(tokens.PrecedenceLowest)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.expect(tokens.TOKRParen, "expected ')' after if statement")
+	if err != nil {
+		return nil, err
+	}
+
+	bodyBlock, err := p.handleBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	ifNode.Conditions = append(ifNode.Conditions, ast.IfCondition{
+		Condition: cond,
+		Body:      bodyBlock,
+	})
+
+	for p.peekToken().Kind == tokens.TOKElse {
+		p.readToken()
+
+		if p.peekToken().Kind == tokens.TOKIf {
+			p.readToken()
+			_, err := p.expect(tokens.TOKLParen, "expected '(' before if condition")
+			if err != nil {
+				return nil, err
+			}
+
+			nextCond, err := p.handleExpressions(tokens.PrecedenceLowest)
+			if err != nil {
+				return nil, err
+			}
+			_, err = p.expect(tokens.TOKRParen, "expected ')' after if statement")
+			if err != nil {
+				return nil, err
+			}
+
+			nextBody, err := p.handleBlock()
+			if err != nil {
+				return nil, err
+			}
+
+			ifNode.Conditions = append(ifNode.Conditions, ast.IfCondition{
+				Condition: nextCond,
+				Body:      nextBody,
+			})
+		} else {
+			elseBodyBlock, err := p.handleBlock()
+			if err != nil {
+				return nil, err
+			}
+
+			ifNode.ElseBody = elseBodyBlock
+		}
+	}
+
+	return ifNode, nil
+}
+
+func (p *parser) handleWhileStatement() (ast.ASTNode, error) {
+	p.readToken()
+
+	_, err := p.expect(tokens.TOKLParen, "expected '(' before while condition")
+	if err != nil {
+		return nil, err
+	}
+
+	cond, err := p.handleExpressions(tokens.PrecedenceLowest)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.expect(tokens.TOKRParen, "expected ')' after while statement")
+	if err != nil {
+		return nil, err
+	}
+
+	bodyBlock, err := p.handleBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.WhileStatementNode{
+		Condition: cond,
+		Body:      bodyBlock,
+	}, nil
+}
+
+func (p *parser) handleForStatement() (ast.ASTNode, error) {
+	p.readToken()
+
+	var init ast.ASTNode = nil
+	var cond ast.ASTNode = nil
+	var post ast.ASTNode = nil
+
+	_, err := p.expect(tokens.TOKLParen, "expected '(' before for statement")
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken().Kind != tokens.TOKSemiColon {
+		tok := p.peekToken()
+		var err error
+
+		if tok.Kind == tokens.TOKLet || tok.Kind == tokens.TOKConst {
+			p.readToken()
+			init, err = p.handleVariableDecl(false, tok.Kind == tokens.TOKConst)
+		} else if tok.Kind == tokens.TOKId || p.peekNToken(1).Kind.IsAssign() {
+			p.readToken()
+			init, err = p.handleAssignement(tok)
+		} else {
+			init, err = p.handleExpressions(tokens.PrecedenceLowest)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = p.expect(tokens.TOKSemiColon, "expected ';' after init of for statement")
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken().Kind != tokens.TOKSemiColon {
+		cond, err = p.handleExpressions(tokens.PrecedenceLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = p.expect(tokens.TOKSemiColon, "expected ';' after condition of for statement")
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken().Kind != tokens.TOKRParen {
+		tok := p.peekToken()
+		if p.peekNToken(1).Kind.IsAssign() {
+			p.readToken()
+			post, err = p.handleAssignement(tok)
+		} else {
+			post, err = p.handleExpressions(tokens.PrecedenceLowest)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.expect(tokens.TOKRParen, "expected ')' after for statement")
+	if err != nil {
+		return nil, err
+	}
+
+	bodyBlock, err := p.handleBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.ForStatementNode{
+		Init:      init,
+		Condition: cond,
+		Post:      post,
+		Body:      bodyBlock,
+	}, nil
 }
 
 // +---------------+
 // | TypeExtension |
 // +---------------+
 
-func (p *parser) HandleTypeExtension(targetType string) (ast.ASTNode, error) {
+func (p *parser) handleTypeExtension(targetType string) (ast.ASTNode, error) {
 	_, err := p.expect(tokens.TOKLBraces, "expected '{' after extension operator")
 	if err != nil {
 		return nil, err

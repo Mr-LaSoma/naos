@@ -20,12 +20,18 @@ type Parameter struct {
 	Type    ASTNode
 }
 
+type FuncAttribute struct {
+	Name string
+	Args map[string]string
+}
+
 type FuncDeclNode struct {
 	IsPublic   bool
 	Name       string
 	Parameters []Parameter
 	ReturnType ASTNode
-	Body       []ASTNode
+	Body       ASTNode
+	Attributes []FuncAttribute
 }
 
 func (n *FuncDeclNode) Node() {}
@@ -49,8 +55,40 @@ type OverloadDeclNode struct {
 	ActionName string
 	Parameters []Parameter
 	ReturnType ASTNode
-	Body       []ASTNode
+	Body       ASTNode
 	IsInvalid  bool
 }
 
 func (n *OverloadDeclNode) Node() {}
+
+// +------------+
+// | Conditions |
+// +------------+
+
+type IfCondition struct {
+	Condition ASTNode
+	Body      ASTNode
+}
+
+type IfStatementNode struct {
+	Conditions []IfCondition
+	ElseBody   ASTNode
+}
+
+func (n *IfStatementNode) Node() {}
+
+type WhileStatementNode struct {
+	Condition ASTNode
+	Body      ASTNode
+}
+
+func (n *WhileStatementNode) Node() {}
+
+type ForStatementNode struct {
+	Init      ASTNode
+	Condition ASTNode
+	Post      ASTNode
+	Body      ASTNode
+}
+
+func (n *ForStatementNode) Node() {}

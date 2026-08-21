@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"naoslang/parser/ast"
 	"naoslang/tokenizer/tokens"
 )
@@ -54,7 +55,7 @@ func (p *parser) Parse() (*ast.ASTFile, error) {
 				p.readToken()
 				p.readToken()
 
-				extNode, err := p.HandleTypeExtension(tok.Lexeme)
+				extNode, err := p.handleTypeExtension(tok.Lexeme)
 				if err != nil {
 					return nil, err
 				}
@@ -155,7 +156,15 @@ func (p *parser) Parse() (*ast.ASTFile, error) {
 			}
 		}
 
-		p.readToken()
+		fmt.Printf("TOK: %v\n", p.peekToken())
+		_, err = p.handleExpressions(tokens.PrecedenceLowest)
+		if err != nil {
+			return nil, err
+		}
+		_, err = p.expect(tokens.TOKSemiColon, "expected ';' after expression")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return fileAst, nil

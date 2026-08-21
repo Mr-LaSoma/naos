@@ -5,3 +5,10 @@ pub type List :: struct {
     data2: $T,
     next: List($T),
 };
+
+pub func() -> void {
+    {{{{{{{};};};};};};};
+    5;
+    if(x == 0) {}
+    let x := if(cond){ => 3; } else if(cond){ => 5; } else { => 7; };
+}

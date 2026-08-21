@@ -83,3 +83,17 @@ type EnumLiteralNode struct {
 }
 
 func (n *EnumLiteralNode) Node() {}
+
+type GenericTypeNode struct {
+	Name       string
+	Constraint ASTNode
+}
+
+func (n *GenericTypeNode) Node() {}
+
+type GenericInstantiationNode struct {
+	Left         ASTNode
+	TypeArgument []ASTNode
+}
+
+func (n *GenericInstantiationNode) Node() {}

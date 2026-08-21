@@ -2,6 +2,7 @@ package ast
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -142,8 +143,32 @@ func (p *Parameter) String() string {
 	return fmt.Sprintf("%s%s: %s", prefix, p.Name, p.Type.String())
 }
 
+func (a *FuncAttribute) String() string {
+	if len(a.Args) == 0 {
+		return fmt.Sprintf("@%s", a.Name)
+	}
+
+	keys := make([]string, 0, len(a.Args))
+	for k := range a.Args {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	args := make([]string, len(keys))
+	for i, k := range keys {
+		args[i] = fmt.Sprintf("%s: %s", k, a.Args[k])
+	}
+
+	return fmt.Sprintf("@%s(%s)", a.Name, strings.Join(args, ", "))
+}
+
 func (n *FuncDeclNode) String() string {
 	var sb strings.Builder
+
+	for i := range n.Attributes {
+		sb.WriteString(n.Attributes[i].String())
+		sb.WriteString("\n")
+	}
 
 	if n.IsPublic {
 		sb.WriteString("pub ")
@@ -165,13 +190,7 @@ func (n *FuncDeclNode) String() string {
 	}
 
 	sb.WriteString(" {")
-	for _, stmt := range n.Body {
-		sb.WriteString("\n\t")
-		sb.WriteString(indentBody(stmt.String()))
-	}
-	if len(n.Body) > 0 {
-		sb.WriteString("\n")
-	}
+	sb.WriteString(n.Body.String())
 	sb.WriteString("}")
 
 	return sb.String()
@@ -250,13 +269,7 @@ func (n *OverloadDeclNode) String() string {
 	}
 
 	sb.WriteString(" {")
-	for _, stmt := range n.Body {
-		sb.WriteString("\n\t")
-		sb.WriteString(indentBody(stmt.String()))
-	}
-	if len(n.Body) > 0 {
-		sb.WriteString("\n")
-	}
+	sb.WriteString(n.Body.String())
 	sb.WriteString("}")
 
 	return sb.String()
@@ -333,4 +346,85 @@ func (n *EnumLiteralNode) String() string {
 	sb.WriteString("}")
 
 	return sb.String()
+}
+
+func (n *GenericTypeNode) String() string {
+	if n.Constraint == nil {
+		return fmt.Sprintf("$%s", n.Name)
+	}
+	return fmt.Sprintf("$%s %s", n.Name, n.Constraint.String())
+}
+
+func (n *GenericInstantiationNode) String() string {
+	args := make([]string, len(n.TypeArgument))
+	for i, a := range n.TypeArgument {
+		args[i] = a.String()
+	}
+	return fmt.Sprintf("%s(%s)", n.Left.String(), strings.Join(args, ", "))
+}
+
+func (n *BlockExpressionNode) String() string {
+	if len(n.Statements) == 0 && n.Value == nil {
+		return "{}"
+	}
+
+	var sb strings.Builder
+
+	sb.WriteString("{")
+	for _, stmt := range n.Statements {
+		sb.WriteString("\n\t")
+		sb.WriteString(indentBody(stmt.String()))
+	}
+	if n.Value != nil {
+		sb.WriteString("\n\t=> ")
+		sb.WriteString(indentBody(n.Value.String()))
+	}
+	sb.WriteString("\n}")
+
+	return sb.String()
+}
+
+// --- Control flow ---
+
+func (c *IfCondition) String() string {
+	return fmt.Sprintf("%s %s", c.Condition.String(), c.Body.String())
+}
+
+func (n *IfStatementNode) String() string {
+	var sb strings.Builder
+
+	for i, cond := range n.Conditions {
+		if i == 0 {
+			sb.WriteString("if ")
+		} else {
+			sb.WriteString(" else if ")
+		}
+		sb.WriteString(cond.String())
+	}
+
+	if n.ElseBody != nil {
+		sb.WriteString(" else ")
+		sb.WriteString(n.ElseBody.String())
+	}
+
+	return sb.String()
+}
+
+func (n *WhileStatementNode) String() string {
+	return fmt.Sprintf("while %s %s", n.Condition.String(), n.Body.String())
+}
+
+func (n *ForStatementNode) String() string {
+	init, cond, post := "", "", ""
+	if n.Init != nil {
+		init = n.Init.String()
+	}
+	if n.Condition != nil {
+		cond = n.Condition.String()
+	}
+	if n.Post != nil {
+		post = n.Post.String()
+	}
+
+	return fmt.Sprintf("for %s; %s; %s %s", init, cond, post, n.Body.String())
 }

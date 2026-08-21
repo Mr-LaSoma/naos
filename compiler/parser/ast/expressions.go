@@ -36,3 +36,10 @@ type MemberAccessNode struct {
 }
 
 func (n *MemberAccessNode) Node() {}
+
+type BlockExpressionNode struct {
+	Statements []ASTNode
+	Value      ASTNode
+}
+
+func (n *BlockExpressionNode) Node() {}
